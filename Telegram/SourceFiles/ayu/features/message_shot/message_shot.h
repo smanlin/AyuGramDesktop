@@ -45,6 +45,8 @@ void Make(not_null<QWidget*> box, const ShotConfig &config, const Fn<void(QImage
 
 void Show(ShotConfig config, Fn<void()> clearSelected);
 
+void Show(ShotConfig config, Fn<void()> clearSelected);
+
 void Wrapper(not_null<HistoryView::ListWidget*> widget, Fn<void()> clearSelected);
 void Wrapper(not_null<HistoryInner*> widget, Fn<void()> clearSelected);
 
