@@ -3,32 +3,34 @@
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
 //
-// Copyright @Radolyn, 2026
-#include "ayu/ui/boxes/message_shot_box.h"
+// Copyright @Radolyn, 2025
+#include "message_shot_box.h"
+
+#include <QFileDialog>
+#include <QGuiApplication>
+#include "styles/style_ayu_styles.h"
 
 #include "lang_auto.h"
+#include "theme_selector_box.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/ui/boxes/theme_selector_box.h"
 #include "ayu/ui/components/image_view.h"
-#include "ayu/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
+#include "core/core_settings.h"
+#include "data/data_session.h"
 #include "main/main_session.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_styles.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/vertical_layout.h"
 
-#include <memory>
-#include <QFileDialog>
-#include <QGuiApplication>
-
 MessageShotBox::MessageShotBox(
 	QWidget *parent,
-	AyuFeatures::MessageShot::ShotConfig config)
-	: _config(std::move(config)) {
+	AyuFeatures::MessageShot::ShotConfig config,
+	Fn<void()> clearSelected)
+	: _config(std::move(config))
+	, _clearSelected(std::move(clearSelected)) {
 }
 
 void MessageShotBox::prepare() {
@@ -36,35 +38,12 @@ void MessageShotBox::prepare() {
 }
 
 void MessageShotBox::setupContent() {
-	_selectedPalette = AyuFeatures::MessageShot::getPersistedPalette();
-	if (!_selectedPalette) {
-		_selectedPalette = std::make_shared<style::palette>();
-	}
-	AyuFeatures::MessageShot::setPersistedPalette(_selectedPalette);
+	_selectedPalette = std::make_shared<style::palette>();
 
-	AyuFeatures::MessageShot::ensureChatThemesRefreshed();
-
-	auto &settings = AyuSettings::getInstance();
-	auto &shotSettings = settings.messageShotSettings();
-	const auto savedSimpleQuotesAndReplies = settings.simpleQuotesAndReplies();
-	settings.setSimpleQuotesAndReplies(!shotSettings.showColorfulReplies());
+	const auto &settings = AyuSettings::getInstance();
+	const auto savedShowColorfulReplies = !settings.simpleQuotesAndReplies;
 
 	using namespace Settings;
-
-	auto savedThemeApplyResult = AyuFeatures::MessageShot::SavedThemeApplyResult::Failed;
-	const auto hasSavedTheme = shotSettings.embeddedThemeType() != -1
-		|| shotSettings.cloudThemeId() != 0;
-	if (hasSavedTheme) {
-		savedThemeApplyResult = AyuFeatures::MessageShot::applySavedThemePalette(
-			_selectedPalette,
-			nullptr);
-		if (savedThemeApplyResult != AyuFeatures::MessageShot::SavedThemeApplyResult::Failed) {
-			_config.st = std::make_shared<Ui::ChatStyle>(_selectedPalette.get());
-		} else {
-			shotSettings.clearTheme();
-			_config.st = std::make_shared<Ui::ChatStyle>(_config.controller->chatStyle());
-		}
-	}
 
 	AyuFeatures::MessageShot::setShotConfig(_config);
 
@@ -83,43 +62,14 @@ void MessageShotBox::setupContent() {
 	AddSkip(content);
 	AddSubsectionTitle(content, tr::ayu_MessageShotPreferences());
 
-	const auto firstPreviewLatch = std::make_shared<TimedCountDownLatch>(1);
-	const auto generation = content->lifetime().make_state<int>(0);
-	const auto weak = base::make_weak(this);
-
 	const auto updatePreview = [=]
 	{
-		const auto currentGeneration = ++(*generation);
-		AyuFeatures::MessageShot::Make(this, _config, [=](const QImage &image, bool final)
-		{
-			if (!weak || currentGeneration != *generation) {
-				return;
-			}
-
-			if (final || imageView->getImage().isNull()) {
-				imageView->setImage(image);
-			}
-			firstPreviewLatch->countDown();
-		});
+		const auto image = AyuFeatures::MessageShot::Make(this, _config);
+		imageView->setImage(image);
 	};
 
-	if (savedThemeApplyResult == AyuFeatures::MessageShot::SavedThemeApplyResult::AwaitingAsync) {
-		const auto weakBox = base::make_weak(this);
-		AyuFeatures::MessageShot::subscribeToCloudThemeLoad(
-			_config.controller,
-			_selectedPalette,
-			[=] {
-				if (!weakBox) {
-					return;
-				}
-				_config.st = std::make_shared<Ui::ChatStyle>(_selectedPalette.get());
-				updatePreview();
-			});
-	}
-
 	auto selectedTheme =
-		content->lifetime().make_state<rpl::variable<QString>>(
-			AyuFeatures::MessageShot::resolveThemeName());
+		content->lifetime().make_state<rpl::variable<QString>>(tr::ayu_MessageShotThemeDefault(tr::now));
 
 	AddButtonWithLabel(
 		content,
@@ -138,20 +88,8 @@ void MessageShotBox::setupContent() {
 					_selectedPalette->reset();
 					_selectedPalette->load(palette.save());
 
-					_config.st = std::make_shared<Ui::ChatStyle>(_selectedPalette.get());
-
-					auto &shot = AyuSettings::getInstance().messageShotSettings();
-					const auto embedded = AyuFeatures::MessageShot::getSelectedFromDefault();
-					const auto cloud = AyuFeatures::MessageShot::getSelectedFromCustom();
-					if (cloud.has_value()) {
-						const auto accountId = _config.controller->session().userId().bare;
-						shot.setCloudTheme(accountId, cloud->id, cloud->accessHash, cloud->documentId, cloud->title);
-					} else if (embedded != Window::Theme::EmbeddedType(-1)) {
-						const auto color = AyuFeatures::MessageShot::getSelectedColorFromDefault();
-						shot.setEmbeddedTheme(static_cast<int>(embedded), color ? color->rgb() : 0);
-					} else {
-						shot.clearTheme();
-					}
+					_config.st = std::make_shared<Ui::ChatStyle>(
+						_selectedPalette.get());
 
 					updatePreview();
 				},
@@ -177,12 +115,13 @@ void MessageShotBox::setupContent() {
 		content,
 		tr::ayu_MessageShotShowBackground(),
 		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showBackground())
+	)->toggleOn(rpl::single(_config.showBackground)
 	)->toggledValue(
-	) | rpl::skip(1) | on_next(
+	) | on_next(
 		[=](bool enabled)
 		{
-			AyuSettings::getInstance().messageShotSettings().setShowBackground(enabled);
+			_config.showBackground = enabled;
+
 			updatePreview();
 		},
 		content->lifetime());
@@ -191,12 +130,13 @@ void MessageShotBox::setupContent() {
 		content,
 		tr::ayu_MessageShotShowDate(),
 		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showDate())
+	)->toggleOn(rpl::single(_config.showDate)
 	)->toggledValue(
-	) | rpl::skip(1) | on_next(
+	) | on_next(
 		[=](bool enabled)
 		{
-			AyuSettings::getInstance().messageShotSettings().setShowDate(enabled);
+			_config.showDate = enabled;
+
 			updatePreview();
 		},
 		content->lifetime());
@@ -205,12 +145,13 @@ void MessageShotBox::setupContent() {
 		content,
 		tr::ayu_MessageShotShowReactions(),
 		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showReactions())
+	)->toggleOn(rpl::single(_config.showReactions)
 	)->toggledValue(
-	) | rpl::skip(1) | on_next(
+	) | on_next(
 		[=](bool enabled)
 		{
-			AyuSettings::getInstance().messageShotSettings().setShowReactions(enabled);
+			_config.showReactions = enabled;
+
 			updatePreview();
 		},
 		content->lifetime());
@@ -220,14 +161,12 @@ void MessageShotBox::setupContent() {
 		tr::ayu_MessageShotShowColorfulReplies(),
 		st::settingsButtonNoIcon
 	);
-	latestToggle->toggleOn(rpl::single(shotSettings.showColorfulReplies())
+	latestToggle->toggleOn(rpl::single(savedShowColorfulReplies)
 	)->toggledValue(
-	) | rpl::skip(1) | on_next(
+	) | on_next(
 		[=](bool enabled)
 		{
-			auto &currentSettings = AyuSettings::getInstance();
-			currentSettings.messageShotSettings().setShowColorfulReplies(enabled);
-			currentSettings.setSimpleQuotesAndReplies(!enabled);
+			AyuSettings::set_simpleQuotesAndReplies(!enabled);
 
 			_config.st = std::make_shared<Ui::ChatStyle>(_config.st.get());
 			updatePreview();
@@ -250,7 +189,7 @@ void MessageShotBox::setupContent() {
 					  image.save(path);
 				  }
 
-			  	  _tookShot = true;
+				  _clearSelected();
 				  closeBox();
 			  });
 	addButton(tr::ayu_MessageShotCopy(),
@@ -258,12 +197,11 @@ void MessageShotBox::setupContent() {
 			  {
 				  QGuiApplication::clipboard()->setImage(imageView->getImage());
 
-			  	  _tookShot = true;
+				  _clearSelected();
 				  closeBox();
 			  });
 
 	updatePreview();
-	firstPreviewLatch->await(std::chrono::seconds(1));
 
 	const auto boxWidth = imageView->getImage().width() / style::DevicePixelRatio() + (st::boxPadding.left() + st::boxPadding.right()) * 4;
 
@@ -274,11 +212,12 @@ void MessageShotBox::setupContent() {
 			AyuFeatures::MessageShot::resetDefaultSelected();
 			AyuFeatures::MessageShot::resetShotConfig();
 
-			AyuSettings::getInstance().setSimpleQuotesAndReplies(savedSimpleQuotesAndReplies);
+			AyuSettings::set_simpleQuotesAndReplies(!savedShowColorfulReplies);
 		},
 		content->lifetime());
 
 	setDimensionsToContent(boxWidth, content);
 
+	// scroll to the end
 	scrollToWidget(latestToggle);
 }
