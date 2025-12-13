@@ -11,7 +11,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/runtime_composer.h"
 #include "base/flags.h"
 #include "base/weak_ptr.h"
-#include "ui/effects/animations.h"
 #include "ui/userpic_view.h"
 
 class History;
@@ -47,14 +46,9 @@ struct ButtonParameters;
 class InlineList;
 } // namespace HistoryView::Reactions
 
-namespace HistoryView::ReplyButton {
-struct ButtonParameters;
-} // namespace HistoryView::ReplyButton
-
 namespace HistoryView {
 
 using PaintContext = Ui::ChatPaintContext;
-enum class BadgeRole : uchar;
 enum class PointState : char;
 enum class InfoDisplayType : char;
 struct StateRequest;
@@ -323,8 +317,7 @@ struct ServicePreMessage : RuntimeComponent<ServicePreMessage, Element> {
 		not_null<Element*> view,
 		PreparedServiceText string,
 		ClickHandlerPtr fullClickHandler,
-		std::unique_ptr<Media> media,
-		bool below);
+		std::unique_ptr<Media> media = nullptr);
 
 	int resizeToWidth(int newWidth, ElementChatMode mode);
 
@@ -343,7 +336,6 @@ struct ServicePreMessage : RuntimeComponent<ServicePreMessage, Element> {
 	ClickHandlerPtr handler;
 	int width = 0;
 	int height = 0;
-	bool below = false;
 
 };
 
@@ -403,7 +395,6 @@ public:
 		TopicRootReply           = 0x0400,
 		MediaOverriden           = 0x0800,
 		HeavyCustomEmoji         = 0x1000,
-		SummaryShown             = 0x2000,
 	};
 	using Flags = base::flags<Flag>;
 	friend inline constexpr auto is_flag_type(Flag) { return true; }
@@ -464,10 +455,6 @@ public:
 	[[nodiscard]] bool isHiddenByGroup() const;
 	[[nodiscard]] virtual bool isHidden() const;
 
-	[[nodiscard]] float64 deletedOpacity() const;
-	void startDeletedAnimation();
-	[[nodiscard]] Ui::Animations::Simple takeDeletedAnimation();
-
 	[[nodiscard]] bool isIsolatedEmoji() const {
 		return (_flags & Flag::SpecialOnlyEmoji)
 			&& _text.isIsolatedEmoji();
@@ -493,10 +480,6 @@ public:
 	// For blocks context this should be called only from recountDisplayDate().
 	void setDisplayDate(bool displayDate);
 	void setServicePreMessage(
-		PreparedServiceText text,
-		ClickHandlerPtr fullClickHandler = nullptr,
-		std::unique_ptr<Media> media = nullptr);
-	void setServicePostMessage(
 		PreparedServiceText text,
 		ClickHandlerPtr fullClickHandler = nullptr,
 		std::unique_ptr<Media> media = nullptr);
@@ -551,9 +534,6 @@ public:
 	[[nodiscard]] virtual auto reactionButtonParameters(
 		QPoint position,
 		const TextState &reactionState) const -> Reactions::ButtonParameters;
-	[[nodiscard]] virtual auto replyButtonParameters(
-		QPoint position,
-		const TextState &replyState) const -> ReplyButton::ButtonParameters;
 	[[nodiscard]] virtual int reactionsOptimalWidth() const;
 
 	// ClickHandlerHost interface.
@@ -654,7 +634,8 @@ public:
 		const Reactions::InlineList &reactions) const;
 	void clearCustomEmojiRepaint() const;
 	void hideSpoilers();
-	void repaint(QRect r = QRect()) const;
+	void revealSpoilers();
+	void repaint() const;
 
 	[[nodiscard]] ClickHandlerPtr fromPhotoLink() const {
 		return fromLink();
@@ -674,7 +655,6 @@ public:
 	-> std::unique_ptr<Ui::ReactionFlyAnimation>;
 
 	void overrideMedia(std::unique_ptr<Media> media);
-	void overrideRightBadge(const QString &text, BadgeRole role);
 
 	[[nodiscard]] not_null<PurchasedTag*> enforcePurchasedTag();
 
@@ -778,8 +758,6 @@ private:
 
 	mutable Flags _flags = Flag(0);
 	Context _context = Context();
-
-	mutable Ui::Animations::Simple _deletedOpacityAnimation;
 
 };
 
