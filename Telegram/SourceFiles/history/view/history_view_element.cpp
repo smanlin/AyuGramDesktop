@@ -1314,6 +1314,15 @@ void Element::revealSpoilers() {
 	}
 }
 
+void Element::revealSpoilers() {
+	if (_text.hasSpoilers()) {
+		_text.setSpoilerRevealed(true, anim::type::instant);
+	}
+	if (_media) {
+		_media->revealSpoilers();
+	}
+}
+
 void Element::customEmojiRepaint() {
 	if (!(_flags & Flag::CustomEmojiRepainting)) {
 		_flags |= Flag::CustomEmojiRepainting;
