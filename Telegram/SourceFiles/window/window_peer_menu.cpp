@@ -623,7 +623,7 @@ void Filler::addInfo() {
 		if (const auto strong = weak.get()) {
 			if (base::IsCtrlPressed()) {
 				controller->uiShow()->showBox(
-					PrepareShortInfoBox(infoPeer, controller));
+					PrepareShortInfoBox(infoPeer, controller, _thread->peer()));
 			} else {
 				controller->showPeerInfo(strong);
 			}

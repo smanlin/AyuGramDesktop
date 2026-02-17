@@ -49,6 +49,14 @@ rpl::event_stream<> historyUpdateReactive;
 
 rpl::lifetime lifetime = rpl::lifetime();
 
+constexpr auto kJoinedDateCacheMaxSize = 6000;
+constexpr auto kJoinedDateCacheSaveStep = 8;
+int joinedDateCachePendingWrites = 0;
+
+[[nodiscard]] std::string JoinedDateCacheKey(long long channelId, long long userId) {
+	return std::to_string(channelId) + ":" + std::to_string(userId);
+}
+
 bool ghostModeEnabled_util(const AyuGramSettings &settingsUtil) {
 	return
 		!settingsUtil.sendReadMessages
@@ -328,8 +336,10 @@ AyuGramSettings::AyuGramSettings() {
 		 * showPeerId = 2 means ID shown as for Bot API devs (-100)
 	*/
 	showPeerId = 2;
+	showMessageId = false;
 	showMessageSeconds = false;
 	showMessageShot = true;
+	showViewJson = false;
 
 	// ~ Confirmations
 	stickerConfirmation = false;
@@ -665,12 +675,20 @@ void set_quickAdminShortcuts(bool val) {
 	settings->quickAdminShortcuts = val;
 }
 
+void set_showMessageId(bool val) {
+	settings->showMessageId = val;
+}
+
 void set_showMessageSeconds(bool val) {
 	settings->showMessageSeconds = val;
 }
 
 void set_showMessageShot(bool val) {
 	settings->showMessageShot = val;
+}
+
+void set_showViewJson(bool val) {
+	settings->showViewJson = val;
 }
 
 void set_stickerConfirmation(bool val) {
@@ -702,6 +720,37 @@ void set_crashReporting(bool val) {
 void set_improveDC5Connection(bool val) {
 	settings->improveDC5Connection = val;
 	MTP::DcOptions::SetImproveDC5(val);
+}
+
+void cache_joinedDate(long long channelId, long long userId, int value) {
+	initialize();
+	const auto key = JoinedDateCacheKey(channelId, userId);
+	const auto i = settings->joinedDateCache.find(key);
+	if (i != settings->joinedDateCache.end() && i->second == value) {
+		return;
+	}
+	settings->joinedDateCache[key] = value;
+	if (settings->joinedDateCache.size() > kJoinedDateCacheMaxSize) {
+		for (auto toErase = settings->joinedDateCache.size() - kJoinedDateCacheMaxSize;
+			toErase > 0 && !settings->joinedDateCache.empty();
+			--toErase) {
+			settings->joinedDateCache.erase(settings->joinedDateCache.begin());
+		}
+	}
+	++joinedDateCachePendingWrites;
+	if (joinedDateCachePendingWrites >= kJoinedDateCacheSaveStep) {
+		joinedDateCachePendingWrites = 0;
+		save();
+	}
+}
+
+std::optional<int> get_cachedJoinedDate(long long channelId, long long userId) {
+	initialize();
+	const auto key = JoinedDateCacheKey(channelId, userId);
+	const auto i = settings->joinedDateCache.find(key);
+	return (i != settings->joinedDateCache.end())
+		? std::make_optional(i->second)
+		: std::nullopt;
 }
 
 bool isUseScheduledMessages() {

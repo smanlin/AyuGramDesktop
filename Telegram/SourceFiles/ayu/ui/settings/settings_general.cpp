@@ -244,6 +244,45 @@ void SetupQoLToggles(not_null<Ui::VerticalLayout*> container, not_null<Window::S
 		},
 		container->lifetime());
 
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(qsl("ayu_SettingsShowMessageID"), qsl("Show Message ID (next to time)"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->showMessageId)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled)
+		{
+			return (enabled != settings->showMessageId);
+		}) | on_next(
+		[=](bool enabled)
+		{
+			AyuSettings::set_showMessageId(enabled);
+			AyuSettings::save();
+			AyuSettings::triggerHistoryUpdate();
+		},
+		container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(qsl("ayu_SettingsShowViewJson"), qsl("Show [View JSON] Option"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->showViewJson)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled)
+		{
+			return (enabled != settings->showViewJson);
+		}) | on_next(
+		[=](bool enabled)
+		{
+			AyuSettings::set_showViewJson(enabled);
+			AyuSettings::save();
+		},
+		container->lifetime());
+
 	SetupShowPeerId(container, controller);
 
 	AddSkip(container);
@@ -365,4 +404,4 @@ void AyuGeneral::setupContent(not_null<Window::SessionController*> controller) {
 	ResizeFitChild(this, content);
 }
 
-} // namespace Settings
+} // namespace Settings// force rebuild 

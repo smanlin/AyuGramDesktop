@@ -44,6 +44,26 @@ struct PreparedShortInfoUserpic {
 	Fn<void()> open,
 	Fn<bool()> videoPaused,
 	Fn<void(Ui::Menu::MenuCallback)> menuFiller,
+	not_null<PeerData*> joinedInPeer,
+	const style::ShortInfoBox *stOverride = nullptr);
+
+[[nodiscard]] object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+	not_null<PeerData*> peer,
+	std::shared_ptr<ChatHelpers::Show> show,
+	not_null<PeerData*> joinedInPeer,
+	const style::ShortInfoBox *stOverride = nullptr);
+
+[[nodiscard]] object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+	not_null<PeerData*> peer,
+	not_null<Window::SessionNavigation*> navigation,
+	not_null<PeerData*> joinedInPeer,
+	const style::ShortInfoBox *stOverride = nullptr);
+
+[[nodiscard]] object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+	not_null<PeerData*> peer,
+	Fn<void()> open,
+	Fn<bool()> videoPaused,
+	Fn<void(Ui::Menu::MenuCallback)> menuFiller,
 	const style::ShortInfoBox *stOverride = nullptr);
 
 [[nodiscard]] object_ptr<Ui::BoxContent> PrepareShortInfoBox(

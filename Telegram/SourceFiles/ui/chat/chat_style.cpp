@@ -49,8 +49,10 @@ void EnsureBlockquoteCache(
 	cache->icon = colors.name;
 
 	const auto &settings = AyuSettings::getInstance();
-	if (settings.simpleQuotesAndReplies()) {
-		cache->bg = QColor(0, 0, 0, 0);
+	if (settings.simpleQuotesAndReplies) {
+		// Keep a minimal tint so quote/reply blocks remain visually distinct.
+		cache->bg.setAlpha(32);
+		cache->bg2 = cache->bg;
 	}
 }
 

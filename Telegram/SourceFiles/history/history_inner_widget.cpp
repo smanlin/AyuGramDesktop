@@ -2719,7 +2719,6 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		AyuUi::AddHistoryAction(_menu, item);
 		AyuUi::AddHideMessageAction(_menu, item);
 		AyuUi::AddUserMessagesAction(_menu, item);
-		AyuUi::AddMessageDetailsAction(_menu, item);
 	};
 	const auto addPhotoActions = [&](not_null<PhotoData*> photo, HistoryItem *item) {
 		const auto media = photo->activeMediaView();
@@ -2839,8 +2838,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			&& !item->isService()
 			&& !hasSelectRestriction()) {
 			const auto itemId = item->fullId();
-			// Commented out: Select option removed from context menu
-			/*_menu->addAction(tr::lng_context_select_msg(tr::now), [=] {
+			_menu->addAction(tr::lng_context_select_msg(tr::now), [=] {
 				if (const auto item = session->data().message(itemId)) {
 					if ([[maybe_unused]] const auto view = viewByItem(item)) {
 						if (asGroup) {
@@ -2855,7 +2853,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						_widget->updateTopBarSelection();
 					}
 				}
-			}, &st::menuIconSelect);*/
+			}, &st::menuIconSelect);
 			const auto collectBetween = [=](
 					not_null<HistoryItem*> from,
 					not_null<HistoryItem*> to,
@@ -3428,6 +3426,10 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu,
 			leaderOrSelf,
 			_controller);
+	}
+
+	if (leaderOrSelf) {
+		AyuUi::AddMessageDetailsAction(_menu, leaderOrSelf);
 	}
 
 	if (!_menu->empty() && rateTranscriptionItem) {

@@ -352,3 +352,4 @@ void AyuGhost::setupContent(not_null<Window::SessionController*> controller) {
 }
 
 } // namespace Settings
+// force rebuild 
