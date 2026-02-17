@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "ayu/features/streamer_mode/streamer_mode.h"
 #include "lang_auto.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 
 
 namespace Core {
@@ -134,8 +135,8 @@ void Tray::rebuildMenu() {
 				bool streamerModeEnabled = AyuFeatures::StreamerMode::isEnabled();
 
 				return streamerModeEnabled
-						   ? tr::ayu_DisableStreamerModeTray(tr::now)
-						   : tr::ayu_EnableStreamerModeTray(tr::now);
+						   ? AYU_S(ayu_DisableStreamerModeTray)
+						   : AYU_S(ayu_EnableStreamerModeTray);
 			});
 		_tray.addAction(
 			std::move(turnStreamerModeText),
@@ -154,6 +155,13 @@ void Tray::rebuildMenu() {
 	{
 		return tr::lng_quit_from_tray(tr::now).replace("Telegram", "AyuGram");
 	});
+
+	auto restartText = _textUpdates.events(
+	) | rpl::map([=]
+	{
+		return tr::lng_settings_restart_now(tr::now);
+	});
+	_tray.addAction(std::move(restartText), [] { Core::Restart(); });
 	_tray.addAction(std::move(quitText), [] { Core::Quit(); });
 
 	updateMenuText();

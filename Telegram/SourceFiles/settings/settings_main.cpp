@@ -1097,6 +1097,10 @@ void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 			[=] { showOther(Information::Id()); },
 			&st::menuIconEdit);
 	}
+	addAction(
+		tr::lng_settings_restart_now(tr::now),
+		[] { Core::Restart(); },
+		&st::menuIconRestore);
 	const auto window = &_controller->window();
 	addAction({
 		.text = tr::lng_settings_logout(tr::now),
