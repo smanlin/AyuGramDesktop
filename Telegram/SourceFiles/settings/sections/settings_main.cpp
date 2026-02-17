@@ -5,85 +5,82 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
-#include "settings/sections/settings_main.h"
+#include "settings/settings_main.h"
 
-#include "settings/settings_common_session.h"
-
-#include "api/api_cloud_password.h"
 #include "api/api_credits.h"
-#include "api/api_global_privacy.h"
-#include "api/api_peer_photo.h"
-#include "api/api_premium.h"
-#include "api/api_sensitive_content.h"
-#include "apiwrap.h"
-#include "base/call_delayed.h"
-#include "base/platform/base_platform_info.h"
-#include "boxes/language_box.h"
-#include "boxes/star_gift_box.h"
-#include "boxes/username_box.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
-#include "data/components/credits.h"
-#include "data/components/promo_suggestions.h"
-#include "data/data_chat_filters.h"
-#include "data/data_cloud_themes.h"
-#include "data/data_session.h"
-#include "data/data_user.h"
+#include "settings/cloud_password/settings_cloud_password_input.h"
+#include "settings/settings_advanced.h"
+#include "settings/settings_business.h"
+#include "settings/settings_calls.h"
+#include "settings/settings_chat.h"
+#include "settings/settings_codes.h"
+#include "settings/settings_credits.h"
+#include "settings/settings_folders.h"
+#include "settings/settings_information.h"
+#include "settings/settings_notifications.h"
+#include "settings/settings_power_saving.h"
+#include "settings/settings_premium.h"
+#include "settings/settings_privacy_security.h"
+#include "settings/settings_scale_preview.h"
+#include "boxes/language_box.h"
+#include "boxes/username_box.h"
+#include "boxes/about_box.h"
+#include "boxes/star_gift_box.h"
+#include "ui/basic_click_handlers.h"
+#include "ui/boxes/confirm_box.h"
+#include "ui/controls/userpic_button.h"
+#include "ui/effects/premium_graphics.h"
+#include "ui/effects/premium_top_bar.h" // Ui::Premium::ColorizedSvg.
+#include "ui/wrap/slide_wrap.h"
+#include "ui/widgets/menu/menu_add_action_callback.h"
+#include "ui/widgets/continuous_sliders.h"
+#include "ui/widgets/popup_menu.h"
+#include "ui/text/format_values.h"
+#include "ui/text/text_utilities.h"
+#include "ui/toast/toast.h"
+#include "ui/new_badges.h"
+#include "ui/rect.h"
+#include "ui/vertical_list.h"
+#include "info/channel_statistics/earn/earn_icons.h"
 #include "info/profile/info_profile_badge.h"
 #include "info/profile/info_profile_emoji_status_panel.h"
-#include "info/profile/info_profile_values.h"
+#include "data/components/credits.h"
+#include "data/components/promo_suggestions.h"
+#include "data/data_user.h"
+#include "data/data_session.h"
+#include "data/data_cloud_themes.h"
+#include "data/data_chat_filters.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
-#include "main/main_account.h"
-#include "main/main_app_config.h"
-#include "main/main_domain.h"
+#include "storage/localstorage.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
-#include "settings/settings_builder.h"
-#include "settings/cloud_password/settings_cloud_password_input.h"
-#include "settings/sections/settings_advanced.h"
-#include "settings/sections/settings_business.h"
-#include "settings/sections/settings_calls.h"
-#include "settings/sections/settings_chat.h"
-#include "settings/settings_codes.h"
-#include "settings/settings_faq_suggestions.h"
-#include "settings/sections/settings_credits.h"
-#include "settings/sections/settings_folders.h"
-#include "settings/sections/settings_information.h"
-#include "settings/sections/settings_notifications.h"
-#include "settings/settings_power_saving.h"
-#include "settings/sections/settings_premium.h"
-#include "settings/sections/settings_privacy_security.h"
-#include "settings/settings_scale_preview.h"
-#include "storage/localstorage.h"
-#include "ui/basic_click_handlers.h"
-#include "ui/boxes/confirm_box.h"
-#include "ui/boxes/peer_qr_box.h"
-#include "ui/controls/userpic_button.h"
-#include "ui/layers/generic_box.h"
-#include "ui/new_badges.h"
-#include "ui/power_saving.h"
-#include "ui/rect.h"
-#include "ui/text/format_values.h"
-#include "ui/text/text_utilities.h"
-#include "ui/vertical_list.h"
-#include "ui/widgets/buttons.h"
-#include "ui/widgets/continuous_sliders.h"
-#include "ui/widgets/menu/menu_add_action_callback.h"
-#include "ui/widgets/menu/menu_item_base.h"
-#include "ui/widgets/popup_menu.h"
-#include "ui/wrap/slide_wrap.h"
+#include "main/main_account.h"
+#include "main/main_domain.h"
+#include "main/main_app_config.h"
+#include "apiwrap.h"
+#include "api/api_peer_photo.h"
+#include "api/api_cloud_password.h"
+#include "api/api_global_privacy.h"
+#include "api/api_sensitive_content.h"
+#include "api/api_premium.h"
+#include "info/profile/info_profile_values.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
-#include "styles/style_info.h"
-#include "styles/style_layers.h"
-#include "styles/style_menu_icons.h"
+#include "base/call_delayed.h"
+#include "base/platform/base_platform_info.h"
+#include "styles/style_chat.h"
 #include "styles/style_settings.h"
+#include "styles/style_info.h"
+#include "styles/style_layers.h" // boxLabel
+#include "styles/style_menu_icons.h"
 
-#include <QtGui/QClipboard>
 #include <QtGui/QGuiApplication>
+#include <QtGui/QClipboard>
 #include <QtGui/QWindow>
 
 // AyuGram includes
@@ -93,8 +90,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Settings {
 namespace {
-
-using namespace Builder;
 
 constexpr auto kSugValidatePhone = "VALIDATE_PHONE_NUMBER"_cs;
 
@@ -106,17 +101,13 @@ public:
 		not_null<UserData*> user);
 	~Cover();
 
-	[[nodiscard]] not_null<Ui::UserpicButton*> userpic() const {
-		return _userpic.data();
-	}
-
 private:
 	void setupChildGeometry();
 	void initViewers();
+	void refreshStatusText();
 	void refreshNameGeometry(int newWidth);
 	void refreshIdGeometry(int newWidth);
 	void refreshUsernameGeometry(int newWidth);
-	void refreshQrButtonGeometry(int newWidth);
 
 	const not_null<Window::SessionController*> _controller;
 	const not_null<UserData*> _user;
@@ -128,7 +119,6 @@ private:
 	object_ptr<Ui::FlatLabel> _name = { nullptr };
 	object_ptr<Ui::FlatLabel> _id = { nullptr };
 	object_ptr<Ui::FlatLabel> _username = { nullptr };
-	object_ptr<Ui::IconButton> _qrButton = { nullptr };
 
 };
 
@@ -145,7 +135,7 @@ Cover::Cover(
 , _user(user)
 , _badge(
 	this,
-	st::settingsCoverBadge,
+	st::infoPeerBadge,
 	&user->session(),
 	Info::Profile::BadgeContentForPeer(user),
 	&_emojiStatusPanel,
@@ -231,18 +221,6 @@ Cover::Cover(
 	) | rpl::on_next([=] {
 		refreshNameGeometry(width());
 	}, _name->lifetime());
-
-	_qrButton.create(this, st::infoProfileLabeledButtonQr);
-	_qrButton->setClickedCallback([=, show = controller->uiShow()] {
-		Ui::DefaultShowFillPeerQrBoxCallback(show, _user);
-	});
-	Info::Profile::UsernamesValue(
-		_user
-	) | rpl::on_next([=](const auto &usernames) {
-		_qrButton->setVisible(!usernames.empty());
-		refreshNameGeometry(width());
-		refreshQrButtonGeometry(width());
-	}, _qrButton->lifetime());
 }
 
 Cover::~Cover() = default;
@@ -258,7 +236,6 @@ void Cover::setupChildGeometry() {
 		refreshNameGeometry(newWidth);
 		refreshIdGeometry(newWidth);
 		refreshUsernameGeometry(newWidth);
-		refreshQrButtonGeometry(newWidth);
 	}, lifetime());
 }
 
@@ -270,8 +247,8 @@ void Cover::initViewers() {
 		refreshNameGeometry(width());
 	}, lifetime());
 
-	rpl::single(
-		tr::marked(IDString(_user))
+	IDValue(
+		_user
 	) | rpl::on_next([=](const TextWithEntities &value) {
 		_id->setText(value.text);
 		refreshIdGeometry(width());
@@ -304,13 +281,9 @@ void Cover::initViewers() {
 void Cover::refreshNameGeometry(int newWidth) {
 	const auto nameLeft = st::settingsNameLeft;
 	const auto nameTop = st::settingsNameTop;
-	const auto qrButtonWidth = (_qrButton && !_qrButton->isHidden())
-		? (_qrButton->width() + st::infoProfileCover.rightSkip)
-		: 0;
 	auto nameWidth = newWidth
 		- nameLeft
-		- st::infoProfileCover.rightSkip
-		- qrButtonWidth;
+		- st::infoProfileCover.rightSkip;
 	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
@@ -349,465 +322,99 @@ void Cover::refreshUsernameGeometry(int newWidth) {
 	_username->moveToLeft(usernameLeft, usernameTop, newWidth);
 }
 
-void Cover::refreshQrButtonGeometry(int newWidth) {
-	if (!_qrButton) {
-		return;
-	}
-	const auto buttonTop = (height() - _qrButton->height()) / 2;
-	const auto buttonRight = st::infoProfileCover.rightSkip;
-	const auto inset = st::infoProfileLabeledButtonQrInset;
-	_qrButton->moveToRight(buttonRight - inset, buttonTop, newWidth);
-}
+[[nodiscard]] not_null<Ui::SettingsButton*> AddPremiumStar(
+		not_null<Ui::SettingsButton*> button,
+		bool credits,
+		Fn<bool()> isPaused) {
+	const auto stops = credits
+		? Ui::Premium::CreditsIconGradientStops()
+		: Ui::Premium::ButtonGradientStops();
 
-void BuildSectionButtons(SectionBuilder &builder) {
-	const auto session = builder.session();
-	const auto controller = builder.controller();
-	const auto showOther = builder.showOther();
+	const auto ministarsContainer = Ui::CreateChild<Ui::RpWidget>(button);
+	const auto &buttonSt = button->st();
+	const auto fullHeight = buttonSt.height
+		+ rect::m::sum::v(buttonSt.padding);
+	using MiniStars = Ui::Premium::ColoredMiniStars;
+	const auto ministars = button->lifetime().make_state<MiniStars>(
+		ministarsContainer,
+		false);
+	ministars->setColorOverride(stops);
 
-	builder.addSectionButton({
-		.title = tr::ayu_AyuPreferences(),
-		.targetSection = AyuMain::Id(),
-		.icon = { &st::menuIconPremium },
-		.keywords = { u"ayu"_q },
-	});
-	builder.addSkip();
-	builder.addDivider();
-	builder.addSkip();
+	const auto isPausedValue
+		= button->lifetime().make_state<rpl::variable<bool>>(isPaused());
+	isPausedValue->value() | rpl::on_next([=](bool value) {
+		ministars->setPaused(value);
+	}, ministarsContainer->lifetime());
 
-	if (!session->supportMode()) {
-		builder.addSectionButton({
-			.title = tr::lng_settings_my_account(),
-			.targetSection = InformationId(),
-			.icon = { &st::menuIconProfile },
-			.keywords = { u"profile"_q, u"edit"_q, u"information"_q },
-		});
-	}
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_notify(),
-		.targetSection = NotificationsId(),
-		.icon = { &st::menuIconNotifications },
-		.keywords = { u"alerts"_q, u"sounds"_q, u"badge"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_privacy(),
-		.targetSection = PrivacySecurityId(),
-		.icon = { &st::menuIconLock },
-		.keywords = { u"security"_q, u"passcode"_q, u"password"_q, u"2fa"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_chat_settings(),
-		.targetSection = ChatId(),
-		.icon = { &st::menuIconChatBubble },
-		.keywords = { u"themes"_q, u"appearance"_q, u"stickers"_q },
-	});
-
-	{ // Folders
-		const auto preload = [=] {
-			session->data().chatsFilters().requestSuggested();
-		};
-		const auto hasFilters = session->data().chatsFilters().has()
-			|| session->settings().dialogsFiltersEnabled();
-
-		auto shownProducer = hasFilters
-			? rpl::single(true) | rpl::type_erased
-			: (rpl::single(rpl::empty) | rpl::then(
-				session->appConfig().refreshed()
-			) | rpl::map([=] {
-			const auto enabled = session->appConfig().get<bool>(
-				u"dialog_filters_enabled"_q,
-				false);
-			if (enabled) {
-				preload();
-			}
-			return enabled;
-		}));
-
-		if (hasFilters) {
-			preload();
+	ministarsContainer->paintRequest(
+	) | rpl::on_next([=] {
+		(*isPausedValue) = isPaused();
+		auto p = QPainter(ministarsContainer);
+		{
+			constexpr auto kScale = 0.35;
+			const auto r = ministarsContainer->rect();
+			p.translate(r.center());
+			p.scale(kScale, kScale);
+			p.translate(-r.center());
 		}
+		ministars->paint(p);
+	}, ministarsContainer->lifetime());
 
-		builder.addButton({
-			.title = tr::lng_settings_section_filters(),
-			.icon = { &st::menuIconShowInFolder },
-			.onClick = [=] { showOther(FoldersId()); },
-			.keywords = { u"filters"_q, u"tabs"_q },
-			.shown = std::move(shownProducer),
-		});
-	}
+	const auto badge = Ui::CreateChild<Ui::RpWidget>(button.get());
 
-	builder.addSectionButton({
-		.title = tr::lng_settings_advanced(),
-		.targetSection = AdvancedId(),
-		.icon = { &st::menuIconManage },
-		.keywords = { u"performance"_q, u"proxy"_q, u"experimental"_q },
-	});
-
-	builder.addSectionButton({
-		.title = tr::lng_settings_section_devices(),
-		.targetSection = CallsId(),
-		.icon = { &st::menuIconUnmute },
-		.keywords = { u"sessions"_q, u"calls"_q },
-	});
-
-	builder.addButton({
-		.id = u"main/power"_q,
-		.title = tr::lng_settings_power_menu(),
-		.icon = { &st::menuIconPowerUsage },
-		.onClick = [=] {
-			controller->show(Box(PowerSavingBox, PowerSaving::Flags()));
-		},
-		.keywords = { u"battery"_q, u"animations"_q, u"power"_q, u"saving"_q },
-	});
-
-	builder.addButton({
-		.id = u"main/language"_q,
-		.title = tr::lng_settings_language(),
-		.icon = { &st::menuIconTranslate },
-		.label = rpl::single(
-			Lang::GetInstance().id()
-		) | rpl::then(
-			Lang::GetInstance().idChanges()
-		) | rpl::map([] { return Lang::GetInstance().nativeName(); }),
-		.onClick = [=] {
-			static auto Guard = base::binary_guard();
-			Guard = LanguageBox::Show(controller);
-		},
-		.keywords = { u"translate"_q, u"localization"_q, u"language"_q },
-	});
-}
-
-void BuildInterfaceScale(SectionBuilder &builder) {
-	if (!HasInterfaceScale()) {
-		return;
-	}
-
-	builder.addDivider();
-	builder.addSkip();
-
-	builder.add([](const WidgetContext &ctx) {
-		const auto window = &ctx.controller->window();
-		auto wrap = object_ptr<Ui::VerticalLayout>(ctx.container);
-		SetupInterfaceScale(window, wrap.data());
-		return SectionBuilder::WidgetToAdd{ .widget = std::move(wrap) };
-	}, [] {
-		return SearchEntry{
-			.id = u"main/scale"_q,
-			.title = tr::lng_settings_default_scale(tr::now),
-			.keywords = { u"zoom"_q, u"size"_q, u"interface"_q, u"ui"_q },
-		};
-	});
-
-	builder.addSkip();
-}
-
-void BuildPremiumSection(SectionBuilder &builder) {
-	const auto session = builder.session();
-	const auto controller = builder.controller();
-	const auto showOther = builder.showOther();
-
-	if (!session->premiumPossible()) {
-		return;
-	}
-
-	builder.addDivider();
-	builder.addSkip();
-
-	builder.addPremiumButton({
-		.id = u"main/premium"_q,
-		.title = tr::lng_premium_summary_title(),
-		.onClick = [=] {
-			controller->setPremiumRef("settings");
-			showOther(PremiumId());
-		},
-		.keywords = { u"subscription"_q },
-	});
-
-	session->credits().load();
-	builder.addPremiumButton({
-		.id = u"main/credits"_q,
-		.title = tr::lng_settings_credits(),
-		.label = session->credits().balanceValue(
-		) | rpl::map([](CreditsAmount c) {
-			return c
-				? Lang::FormatCreditsAmountToShort(c).string
-				: QString();
-		}),
-		.credits = true,
-		.onClick = [=] {
-			controller->setPremiumRef("settings");
-			showOther(CreditsId());
-		},
-		.keywords = { u"stars"_q, u"balance"_q },
-	});
-
-	session->credits().tonLoad();
-	builder.addButton({
-		.id = u"main/currency"_q,
-		.title = tr::lng_settings_currency(),
-		.icon = { &st::menuIconTon },
-		.label = session->credits().tonBalanceValue(
-		) | rpl::map([](CreditsAmount c) {
-			return c ? Lang::FormatCreditsAmountToShort(c).string : u""_q;
-		}),
-		.onClick = [=] {
-			controller->setPremiumRef("settings");
-			showOther(CurrencyId());
-		},
-		.keywords = { u"ton"_q, u"crypto"_q, u"wallet"_q },
-		.shown = session->credits().tonBalanceValue(
-		) | rpl::map([](CreditsAmount c) { return !c.empty(); }),
-	});
-
-	builder.addButton({
-		.id = u"main/business"_q,
-		.title = tr::lng_business_title(),
-		.icon = { .icon = &st::menuIconShop },
-		.onClick = [=] { showOther(BusinessId()); },
-		.keywords = { u"work"_q, u"company"_q },
-	});
-
-	if (session->premiumCanBuy()) {
-		builder.addButton({
-			.id = u"main/send-gift"_q,
-			.title = tr::lng_settings_gift_premium(),
-			.icon = { .icon = &st::menuIconGiftPremium, .newBadge = true },
-			.onClick = [=] { Ui::ChooseStarGiftRecipient(controller); },
-			.keywords = { u"present"_q, u"send"_q },
-		});
-	}
-
-	builder.addSkip();
-}
-
-void BuildHelpSection(SectionBuilder &builder) {
-	builder.addDivider();
-	builder.addSkip();
-
-	const auto controller = builder.controller();
-	builder.addButton({
-		.id = u"main/faq"_q,
-		.title = tr::lng_settings_faq(),
-		.icon = { &st::menuIconFaq },
-		.onClick = [=] { OpenFaq(controller); },
-		.keywords = { u"help"_q, u"support"_q, u"questions"_q },
-	});
-
-	builder.addButton({
-		.id = u"main/features"_q,
-		.title = tr::lng_settings_features(),
-		.icon = { &st::menuIconEmojiObjects },
-		.onClick = [] {
-			UrlClickHandler::Open(tr::lng_telegram_features_url(tr::now));
-		},
-		.keywords = { u"tips"_q, u"tutorial"_q },
-	});
-
-	builder.addButton({
-		.id = u"main/ask-question"_q,
-		.title = tr::lng_settings_ask_question(),
-		.icon = { &st::menuIconDiscussion },
-		.onClick = [=] { OpenAskQuestionConfirm(controller); },
-		.keywords = { u"contact"_q, u"feedback"_q },
-	});
-
-	builder.addSkip();
-}
-
-void BuildValidationSuggestions(SectionBuilder &builder) {
-	builder.add([](const WidgetContext &ctx) {
-		const auto controller = ctx.controller.get();
-		const auto showOther = ctx.showOther;
-		auto wrap = object_ptr<Ui::VerticalLayout>(ctx.container);
-		SetupValidatePhoneNumberSuggestion(controller, wrap.data(), showOther);
-		return SectionBuilder::WidgetToAdd{ .widget = std::move(wrap) };
-	});
-
-	builder.add([](const WidgetContext &ctx) {
-		const auto controller = ctx.controller.get();
-		const auto showOther = ctx.showOther;
-		auto wrap = object_ptr<Ui::VerticalLayout>(ctx.container);
-		SetupValidatePasswordSuggestion(controller, wrap.data(), showOther);
-		return SectionBuilder::WidgetToAdd{ .widget = std::move(wrap) };
-	});
-}
-
-class Main final : public Section<Main> {
-public:
-	Main(QWidget *parent, not_null<Window::SessionController*> controller);
-
-	[[nodiscard]] rpl::producer<QString> title() override;
-
-	void fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) override;
-	void showFinished() override;
-
-protected:
-	void keyPressEvent(QKeyEvent *e) override;
-
-private:
-	void setupContent();
-
-	QPointer<Ui::UserpicButton> _userpic;
-
-};
-
-Main::Main(
-	QWidget *parent,
-	not_null<Window::SessionController*> controller)
-: Section(parent, controller) {
-	setupContent();
-}
-
-rpl::producer<QString> Main::title() {
-	return tr::lng_menu_settings();
-}
-
-void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
-	const auto &list = Core::App().domain().accounts();
-	if (list.size() < Core::App().domain().maxAccounts()) {
-		addAction(tr::lng_menu_add_account(tr::now), [=] {
-			Core::App().domain().addActivated(MTP::Environment{});
-		}, &st::menuIconAddAccount);
-	}
-	if (!controller()->session().supportMode()) {
-		addAction(
-			tr::lng_settings_information(tr::now),
-			[=] { showOther(InformationId()); },
-			&st::menuIconEdit);
-	}
-	const auto window = &controller()->window();
-	const auto logout = addAction({
-		.text = tr::lng_settings_logout(tr::now),
-		.handler = [=] { window->showLogoutConfirmation(); },
-		.icon = &st::menuIconLeaveAttention,
-		.isAttention = true,
-	});
-	logout->setProperty("highlight-control-id", u"settings/log-out"_q);
-}
-
-void Main::keyPressEvent(QKeyEvent *e) {
-	crl::on_main(this, [=, text = e->text()]{
-		CodesFeedString(controller(), text);
-	});
-	return Section::keyPressEvent(e);
-}
-
-void Main::setupContent() {
-	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
-
-	const auto window = controller();
-	const auto session = &window->session();
-	const auto cover = content->add(object_ptr<Cover>(
-		content,
-		window,
-		session->user()));
-	_userpic = cover->userpic();
-
-	const SectionBuildMethod buildMethod = [](
-			not_null<Ui::VerticalLayout*> container,
-			not_null<Window::SessionController*> controller,
-			Fn<void(Type)> showOther,
-			rpl::producer<> showFinished) {
-		auto &lifetime = container->lifetime();
-		const auto highlights = lifetime.make_state<HighlightRegistry>();
-		const auto isPaused = Window::PausedIn(
-			controller,
-			Window::GifPauseReason::Layer);
-		auto builder = SectionBuilder(WidgetContext{
-			.container = container,
-			.controller = controller,
-			.showOther = std::move(showOther),
-			.isPaused = isPaused,
-			.highlights = highlights,
-		});
-		builder.addDivider();
-		builder.addSkip();
-		BuildValidationSuggestions(builder);
-		BuildSectionButtons(builder);
-		builder.addSkip();
-		BuildInterfaceScale(builder);
-		BuildPremiumSection(builder);
-		BuildHelpSection(builder);
-
-		std::move(showFinished) | rpl::on_next([=] {
-			for (const auto &[id, entry] : *highlights) {
-				if (entry.widget) {
-					controller->checkHighlightControl(
-						id,
-						entry.widget,
-						base::duplicate(entry.args));
-				}
-			}
-		}, lifetime);
-	};
-	build(content, buildMethod);
-
-	Ui::ResizeFitChild(this, content);
-
-	session->api().cloudPassword().reload();
-	session->api().reloadContactSignupSilent();
-	session->api().sensitiveContent().reload();
-	session->api().globalPrivacy().reload();
-	session->api().premium().reload();
-	session->data().cloudThemes().refresh();
-	session->faqSuggestions().request();
-}
-
-void Main::showFinished() {
-	controller()->checkHighlightControl(u"profile-photo"_q, _userpic.data(), {
-		.margin = st::settingsPhotoHighlightMargin,
-		.shape = HighlightShape::Ellipse,
-	});
-	const auto emojiId = u"profile-photo/use-emoji"_q;
-	if (controller()->takeHighlightControlId(emojiId)) {
-		if (const auto popupMenu = _userpic->showChangePhotoMenu()) {
-			const auto menu = popupMenu->menu();
-			for (const auto &action : menu->actions()) {
-				const auto controlId = "highlight-control-id";
-				if (action->property(controlId).toString() == emojiId) {
-					if (const auto item = menu->itemForAction(action)) {
-						HighlightWidget(item);
-					}
-					break;
-				}
-			}
+	auto star = [&] {
+		const auto factor = style::DevicePixelRatio();
+		const auto size = Size(st::settingsButtonNoIcon.style.font->ascent);
+		auto image = QImage(
+			size * factor,
+			QImage::Format_ARGB32_Premultiplied);
+		image.setDevicePixelRatio(factor);
+		image.fill(Qt::transparent);
+		{
+			auto p = QPainter(&image);
+			auto star = QSvgRenderer(Ui::Premium::ColorizedSvg(stops));
+			star.render(&p, Rect(size));
 		}
-	}
-	Section<Main>::showFinished();
+		return image;
+	}();
+	badge->resize(star.size() / style::DevicePixelRatio());
+	badge->paintRequest(
+	) | rpl::on_next([=] {
+		auto p = QPainter(badge);
+		p.drawImage(0, 0, star);
+	}, badge->lifetime());
+
+	button->sizeValue(
+	) | rpl::on_next([=](const QSize &s) {
+		badge->moveToLeft(
+			button->st().iconLeft
+				+ (st::menuIconShop.width() - badge->width()) / 2,
+			(s.height() - badge->height()) / 2);
+		ministarsContainer->moveToLeft(
+			badge->x() - (fullHeight - badge->height()) / 2,
+			0);
+	}, badge->lifetime());
+
+	ministarsContainer->resize(fullHeight, fullHeight);
+	ministars->setCenter(ministarsContainer->rect());
+
+	return button;
 }
-
-const auto kMeta = BuildHelper({
-	.id = Main::Id(),
-	.parentId = nullptr,
-	.title = &tr::lng_menu_settings,
-	.icon = &st::menuIconSettings,
-}, [](SectionBuilder &builder) {
-	builder.addDivider();
-	builder.addSkip();
-
-	builder.add(nullptr, [] {
-		return SearchEntry{
-			.id = u"main/profile-photo"_q,
-			.title = tr::lng_profile_set_photo_for(tr::now),
-			.keywords = { u"photo"_q, u"avatar"_q, u"picture"_q, u"profile"_q },
-			.icon = { &st::menuIconProfile },
-			.deeplink = u"tg://settings/profile-photo"_q,
-		};
-	});
-
-	BuildValidationSuggestions(builder);
-	BuildSectionButtons(builder);
-
-	builder.addSkip();
-
-	BuildInterfaceScale(builder);
-	BuildPremiumSection(builder);
-	BuildHelpSection(builder);
-});
 
 } // namespace
+
+void SetupPowerSavingButton(
+		not_null<Window::Controller*> window,
+		not_null<Ui::VerticalLayout*> container) {
+	const auto button = AddButtonWithIcon(
+		container,
+		tr::lng_settings_power_menu(),
+		st::settingsButton,
+		{ &st::menuIconPowerUsage });
+	button->setClickedCallback([=] {
+		window->show(Box(PowerSavingBox));
+	});
+}
 
 void SetupLanguageButton(
 		not_null<Window::Controller*> window,
@@ -1021,6 +628,223 @@ void SetupValidatePasswordSuggestion(
 	Ui::AddSkip(content);
 }
 
+void SetupSections(
+		not_null<Window::SessionController*> controller,
+		not_null<Ui::VerticalLayout*> container,
+		Fn<void(Type)> showOther) {
+	Ui::AddDivider(container);
+
+	SetupValidatePhoneNumberSuggestion(
+		controller,
+		container,
+		showOther);
+	SetupValidatePasswordSuggestion(
+		controller,
+		container,
+		showOther);
+
+	const auto addSection = [&](
+			rpl::producer<QString> label,
+			Type type,
+			IconDescriptor &&descriptor) {
+		AddButtonWithIcon(
+			container,
+			std::move(label),
+			st::settingsButton,
+			std::move(descriptor)
+		)->addClickHandler([=] {
+			showOther(type);
+		});
+	};
+
+	Ui::AddSkip(container);
+	addSection(
+		tr::ayu_AyuPreferences(),
+		AyuMain::Id(),
+        { .icon = &st::menuIconPremium });
+	Ui::AddSkip(container);
+	Ui::AddDivider(container);
+    Ui::AddSkip(container);
+
+	if (controller->session().supportMode()) {
+		SetupSupport(controller, container);
+
+		Ui::AddDivider(container);
+		Ui::AddSkip(container);
+	} else {
+		addSection(
+			tr::lng_settings_my_account(),
+			Information::Id(),
+			{ &st::menuIconProfile });
+	}
+
+	addSection(
+		tr::lng_settings_section_notify(),
+		Notifications::Id(),
+		{ &st::menuIconNotifications });
+	addSection(
+		tr::lng_settings_section_privacy(),
+		PrivacySecurity::Id(),
+		{ &st::menuIconLock });
+	addSection(
+		tr::lng_settings_section_chat_settings(),
+		Chat::Id(),
+		{ &st::menuIconChatBubble });
+
+	const auto preload = [=] {
+		controller->session().data().chatsFilters().requestSuggested();
+	};
+	const auto account = &controller->session().account();
+	const auto slided = container->add(
+		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
+			container,
+			CreateButtonWithIcon(
+				container,
+				tr::lng_settings_section_filters(),
+				st::settingsButton,
+				{ &st::menuIconShowInFolder }))
+	)->setDuration(0);
+	if (controller->session().data().chatsFilters().has()
+		|| controller->session().settings().dialogsFiltersEnabled()) {
+		slided->show(anim::type::instant);
+		preload();
+	} else {
+		const auto enabled = [=] {
+			const auto result = account->appConfig().get<bool>(
+				u"dialog_filters_enabled"_q,
+				false);
+			if (result) {
+				preload();
+			}
+			return result;
+		};
+		const auto preloadIfEnabled = [=](bool enabled) {
+			if (enabled) {
+				preload();
+			}
+		};
+		slided->toggleOn(
+			rpl::single(rpl::empty) | rpl::then(
+				account->appConfig().refreshed()
+			) | rpl::map(
+				enabled
+			) | rpl::before_next(preloadIfEnabled));
+	}
+	slided->entity()->setClickedCallback([=] {
+		showOther(Folders::Id());
+	});
+
+	addSection(
+		tr::lng_settings_advanced(),
+		Advanced::Id(),
+		{ &st::menuIconManage });
+	addSection(
+		tr::lng_settings_section_devices(),
+		Calls::Id(),
+		{ &st::menuIconUnmute });
+
+	SetupPowerSavingButton(&controller->window(), container);
+	SetupLanguageButton(&controller->window(), container);
+
+	Ui::AddSkip(container);
+}
+
+void SetupPremium(
+		not_null<Window::SessionController*> controller,
+		not_null<Ui::VerticalLayout*> container,
+		Fn<void(Type)> showOther) {
+	if (!controller->session().premiumPossible()) {
+		return;
+	}
+	Ui::AddDivider(container);
+	Ui::AddSkip(container);
+
+	const auto isPaused = Window::PausedIn(
+		controller,
+		Window::GifPauseReason::Any);
+
+	AddPremiumStar(
+		AddButtonWithIcon(
+			container,
+			tr::lng_premium_summary_title(),
+			st::settingsButton),
+		false,
+		isPaused
+	)->addClickHandler([=] {
+		controller->setPremiumRef("settings");
+		showOther(PremiumId());
+	});
+	{
+		controller->session().credits().load();
+		AddPremiumStar(
+			AddButtonWithLabel(
+				container,
+				tr::lng_settings_credits(),
+				controller->session().credits().balanceValue(
+				) | rpl::map([=](CreditsAmount c) {
+					return c
+						? Lang::FormatCreditsAmountToShort(c).string
+						: QString();
+				}),
+				st::settingsButton),
+			true,
+			isPaused
+		)->addClickHandler([=] {
+			controller->setPremiumRef("settings");
+			showOther(CreditsId());
+		});
+	}
+	{
+		const auto wrap = container->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				container,
+				object_ptr<Ui::VerticalLayout>(container)));
+		wrap->toggleOn(
+			controller->session().credits().tonBalanceValue(
+			) | rpl::map([](CreditsAmount c) -> bool { return !c.empty(); }));
+		wrap->finishAnimating();
+		controller->session().credits().tonLoad();
+		const auto button = AddButtonWithLabel(
+			wrap->entity(),
+			tr::lng_settings_currency(),
+			controller->session().credits().tonBalanceValue(
+			) | rpl::map([=](CreditsAmount c) {
+				return c
+					? Lang::FormatCreditsAmountToShort(c).string
+					: QString();
+			}),
+			st::settingsButton,
+			{ &st::menuIconTon });
+		button->addClickHandler([=] {
+			controller->setPremiumRef("settings");
+			showOther(CurrencyId());
+		});
+	}
+	const auto button = AddButtonWithIcon(
+		container,
+		tr::lng_business_title(),
+		st::settingsButton,
+		{ .icon = &st::menuIconShop });
+	button->addClickHandler([=] {
+		showOther(BusinessId());
+	});
+
+	if (controller->session().premiumCanBuy()) {
+		const auto button = AddButtonWithIcon(
+			container,
+			tr::lng_settings_gift_premium(),
+			st::settingsButton,
+			{ .icon = &st::menuIconGiftPremium }
+		);
+		Ui::NewBadge::AddToRight(button);
+
+		button->addClickHandler([=] {
+			Ui::ChooseStarGiftRecipient(controller);
+		});
+	}
+	Ui::AddSkip(container);
+}
+
 bool HasInterfaceScale() {
 	return true;
 }
@@ -1178,8 +1002,147 @@ void SetupInterfaceScale(
 	}
 }
 
-Type MainId() {
-	return Main::Id();
+void SetupHelp(
+		not_null<Window::SessionController*> controller,
+		not_null<Ui::VerticalLayout*> container) {
+	Ui::AddDivider(container);
+	Ui::AddSkip(container);
+
+	AddButtonWithIcon(
+		container,
+		tr::lng_settings_faq(),
+		st::settingsButton,
+		{ &st::menuIconFaq }
+	)->addClickHandler([=] {
+		OpenFaq(controller);
+	});
+
+	AddButtonWithIcon(
+		container,
+		tr::lng_settings_features(),
+		st::settingsButton,
+		{ &st::menuIconEmojiObjects }
+	)->setClickedCallback([=] {
+		UrlClickHandler::Open(tr::lng_telegram_features_url(tr::now));
+	});
+
+	const auto button = AddButtonWithIcon(
+		container,
+		tr::lng_settings_ask_question(),
+		st::settingsButton,
+		{ &st::menuIconDiscussion });
+	const auto requestId = button->lifetime().make_state<mtpRequestId>();
+	button->lifetime().add([=] {
+		if (*requestId) {
+			controller->session().api().request(*requestId).cancel();
+		}
+	});
+	button->addClickHandler([=] {
+		const auto sure = crl::guard(button, [=] {
+			if (*requestId) {
+				return;
+			}
+			*requestId = controller->session().api().request(
+				MTPhelp_GetSupport()
+			).done([=](const MTPhelp_Support &result) {
+				*requestId = 0;
+				result.match([&](const MTPDhelp_support &data) {
+					auto &owner = controller->session().data();
+					if (const auto user = owner.processUser(data.vuser())) {
+						controller->showPeerHistory(user);
+					}
+				});
+			}).fail([=] {
+				*requestId = 0;
+			}).send();
+		});
+		auto box = Ui::MakeConfirmBox({
+			.text = tr::lng_settings_ask_sure(),
+			.confirmed = sure,
+			.cancelled = [=](Fn<void()> close) {
+				OpenFaq(controller);
+				close();
+			},
+			.confirmText = tr::lng_settings_ask_ok(),
+			.cancelText = tr::lng_settings_faq_button(),
+			.strictCancel = true,
+		});
+		controller->show(std::move(box));
+	});
+}
+
+Main::Main(
+	QWidget *parent,
+	not_null<Window::SessionController*> controller)
+: Section(parent)
+, _controller(controller) {
+	setupContent(controller);
+	_controller->session().api().premium().reload();
+}
+
+rpl::producer<QString> Main::title() {
+	return tr::lng_menu_settings();
+}
+
+void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
+	const auto &list = Core::App().domain().accounts();
+	if (list.size() < Core::App().domain().maxAccounts()) {
+		addAction(tr::lng_menu_add_account(tr::now), [=] {
+			Core::App().domain().addActivated(MTP::Environment{});
+		}, &st::menuIconAddAccount);
+	}
+	if (!_controller->session().supportMode()) {
+		addAction(
+			tr::lng_settings_information(tr::now),
+			[=] { showOther(Information::Id()); },
+			&st::menuIconEdit);
+	}
+	addAction(
+		tr::lng_settings_restart_now(tr::now),
+		[] { Core::Restart(); },
+		&st::menuIconRestore);
+	const auto window = &_controller->window();
+	addAction({
+		.text = tr::lng_settings_logout(tr::now),
+		.handler = [=] { window->showLogoutConfirmation(); },
+		.icon = &st::menuIconLeaveAttention,
+		.isAttention = true,
+	});
+}
+
+void Main::keyPressEvent(QKeyEvent *e) {
+	crl::on_main(this, [=, text = e->text()]{
+		CodesFeedString(_controller, text);
+	});
+	return Section::keyPressEvent(e);
+}
+
+void Main::setupContent(not_null<Window::SessionController*> controller) {
+	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
+
+	content->add(object_ptr<Cover>(
+		content,
+		controller,
+		controller->session().user()));
+
+	SetupSections(controller, content, showOtherMethod());
+	if (HasInterfaceScale()) {
+		Ui::AddDivider(content);
+		Ui::AddSkip(content);
+		SetupInterfaceScale(&controller->window(), content);
+		Ui::AddSkip(content);
+	}
+	SetupPremium(controller, content, showOtherMethod());
+	SetupHelp(controller, content);
+
+	Ui::ResizeFitChild(this, content);
+
+	// If we load this in advance it won't jump when we open its' section.
+	controller->session().api().cloudPassword().reload();
+	controller->session().api().reloadContactSignupSilent();
+	controller->session().api().sensitiveContent().reload();
+	controller->session().api().globalPrivacy().reload();
+	controller->session().data().cloudThemes().refresh();
 }
 
 void OpenFaq(base::weak_ptr<Window::SessionController> weak) {
@@ -1188,41 +1151,6 @@ void OpenFaq(base::weak_ptr<Window::SessionController> weak) {
 		QVariant::fromValue(ClickHandlerContext{
 			.sessionWindow = weak,
 		}));
-}
-
-void OpenAskQuestionConfirm(not_null<Window::SessionController*> window) {
-	const auto requestId = std::make_shared<mtpRequestId>();
-	const auto sure = [=](Fn<void()> close) {
-		if (*requestId) {
-			return;
-		}
-		*requestId = window->session().api().request(
-			MTPhelp_GetSupport()
-		).done(crl::guard(window, [=](const MTPhelp_Support &result) {
-			*requestId = 0;
-			result.match([&](const MTPDhelp_support &data) {
-				auto &owner = window->session().data();
-				if (const auto user = owner.processUser(data.vuser())) {
-					window->showPeerHistory(user);
-				}
-			});
-			close();
-		})).fail([=] {
-			*requestId = 0;
-			close();
-		}).send();
-	};
-	window->show(Ui::MakeConfirmBox({
-		.text = tr::lng_settings_ask_sure(),
-		.confirmed = sure,
-		.cancelled = [=](Fn<void()> close) {
-			OpenFaq(window);
-			close();
-		},
-		.confirmText = tr::lng_settings_ask_ok(),
-		.cancelText = tr::lng_settings_faq_button(),
-		.strictCancel = true,
-	}));
 }
 
 } // namespace Settings

@@ -87,6 +87,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/features/streamer_mode/streamer_mode.h"
 #include "styles/style_ayu_icons.h"
 #include "lang_auto.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_main.h"
 
 namespace Window {
@@ -909,7 +910,7 @@ void MainMenu::setupMenu() {
 
 	if (settings.showStreamerToggleInDrawer()) {
 		const auto streamerModeToggle = addAction(
-			tr::ayu_StreamerModeToggle(),
+			AYU_T(ayu_StreamerModeToggle),
 			{&st::ayuStreamerModeMenuIcon}
 		)->toggleOn(rpl::single(AyuFeatures::StreamerMode::isEnabled()));
 
