@@ -46,6 +46,8 @@ struct PeerShortInfoFields {
 	QString phone;
 	QString link;
 	TextWithEntities about;
+	QString joinedInLabel;
+	TextWithEntities joinedInValue;
 	QString username;
 	Data::Birthday birthday;
 	TextWithEntities note;
@@ -189,6 +191,8 @@ private:
 	[[nodiscard]] rpl::producer<QString> birthdayLabel() const;
 	[[nodiscard]] rpl::producer<QString> birthdayValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> aboutValue() const;
+	[[nodiscard]] rpl::producer<QString> joinedInLabelValue() const;
+	[[nodiscard]] rpl::producer<TextWithEntities> joinedInValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> noteValue() const;
 
 	const style::ShortInfoBox &_st;

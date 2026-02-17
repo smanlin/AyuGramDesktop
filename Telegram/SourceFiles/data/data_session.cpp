@@ -2823,6 +2823,25 @@ void Session::unregisterMessageTTL(
 	}
 }
 
+bool ShouldDeleteForSure(not_null<HistoryItem*> item) {
+	const auto &text = item->originalText().text;
+	if (text.isEmpty()) {
+		return false;
+	}
+	static const auto kKeywords = {
+		QString::fromUtf8("签到"),
+		QString::fromUtf8("积分"),
+		QString::fromUtf8("Check-in"),
+		QString::fromUtf8("Sign in"),
+	};
+	for (const auto &k : kKeywords) {
+		if (text.contains(k, Qt::CaseInsensitive)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void Session::checkTTLs() {
 	const auto &settings = AyuSettings::getInstance();
 
@@ -2868,7 +2887,11 @@ void Session::processMessagesDeleted(
 		if (list && i != list->end()) {
 			const auto history = i->second->history();
 
-			processMessageDelete(i->second);
+			if (ShouldDeleteForSure(i->second)) {
+				i->second->destroy();
+			} else {
+				processMessageDelete(i->second);
+			}
 
 			if (!history->chatListMessageKnown()) {
 				historiesToCheck.emplace(history);

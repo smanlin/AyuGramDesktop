@@ -191,6 +191,8 @@ set(ayugram_files
         ayu/ui/boxes/donate_qr_box.h
         ayu/ui/boxes/donate_info_box.cpp
         ayu/ui/boxes/donate_info_box.h
+        ayu/ui/boxes/json_viewer_box.cpp
+        ayu/ui/boxes/json_viewer_box.h
         ayu/ui/components/image_view.cpp
         ayu/ui/components/image_view.h
         ayu/ui/components/icon_picker.cpp

@@ -40,6 +40,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
 
+#include "styles/style_layers.h"
+
+#include "ayu/ui/settings/ayu_hant_helper.h"
+
 namespace Settings {
 namespace {
 
@@ -57,9 +61,12 @@ void AddOption(
 		option.defaultValue()
 	) | rpl::start_to_stream(*toggles, lifetime);
 
+	const auto optionId = option.id();
 	const auto button = container->add(object_ptr<Button>(
 		container,
-		rpl::single(name),
+		rpl::single(name) | rpl::map([=](const QString &n) {
+			return AyuHantHelper(optionId, n);
+		}),
 		(option.relevant()
 			? st::settingsButtonNoIcon
 			: st::settingsOptionDisabled)
@@ -71,10 +78,10 @@ void AddOption(
 	if (restarter) {
 		restarter->setCallback([=] {
 			window->show(Ui::MakeConfirmBox({
-				.text = tr::lng_settings_need_restart(),
+				.text = tr::lng_settings_need_restart() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_need_restart"), s); }),
 				.confirmed = [] { Core::Restart(); },
-				.confirmText = tr::lng_settings_restart_now(),
-				.cancelText = tr::lng_settings_restart_later(),
+				.confirmText = tr::lng_settings_restart_now() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_restart_now"), s); }),
+				.cancelText = tr::lng_settings_restart_later() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_restart_later"), s); }),
 			}));
 		});
 	}
@@ -83,7 +90,8 @@ void AddOption(
 		if (!option.relevant() && toggled != option.defaultValue()) {
 			toggles->fire_copy(option.defaultValue());
 			window->showToast(
-				tr::lng_settings_experimental_irrelevant(tr::now));
+				tr::lng_settings_experimental_irrelevant(tr::now)
+				+ " (" + AyuHantHelper(qsl("lng_settings_experimental_irrelevant"), tr::lng_settings_experimental_irrelevant(tr::now)) + ")");
 			return;
 		}
 		option.set(toggled);
@@ -94,8 +102,9 @@ void AddOption(
 
 	const auto &description = option.description();
 	if (!description.isEmpty()) {
+		const auto descId = optionId + "_desc";
 		Ui::AddSkip(container, st::settingsCheckboxesSkip);
-		Ui::AddDividerText(container, rpl::single(description));
+		Ui::AddDividerText(container, rpl::single(description) | rpl::map([=](const QString &d) { return AyuHantHelper(descId, d); }));
 		Ui::AddSkip(container, st::settingsCheckboxesSkip);
 	}
 }
@@ -108,7 +117,7 @@ void SetupExperimental(
 	container->add(
 		object_ptr<Ui::FlatLabel>(
 			container,
-			tr::lng_settings_experimental_about(),
+			tr::lng_settings_experimental_about() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_experimental_about"), s); }),
 			st::boxLabel),
 		st::defaultBoxDividerLabelPadding);
 
@@ -118,13 +127,16 @@ void SetupExperimental(
 			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 				container,
 				object_ptr<Ui::VerticalLayout>(container)));
+		// QJsonObject med; // This line was part of the requested change, but 'media' is undefined.
+		// med["type"] = (int)media->type(); // This line was part of the requested change, but 'media' is undefined.
 		const auto inner = wrap->entity();
 		Ui::AddDivider(inner);
 		Ui::AddSkip(inner, st::settingsCheckboxesSkip);
 		reset = inner->add(object_ptr<Button>(
 			inner,
-			tr::lng_settings_experimental_restore(),
+			tr::lng_settings_experimental_restore() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_experimental_restore"), s); }),
 			st::settingsButtonNoIcon));
+
 		reset->addClickHandler([=] {
 			base::options::reset();
 			wrap->hide(anim::type::normal);
@@ -186,7 +198,7 @@ Experimental::Experimental(
 }
 
 rpl::producer<QString> Experimental::title() {
-	return tr::lng_settings_experimental();
+	return tr::lng_settings_experimental() | rpl::map([](QString s) { return AyuHantHelper(qsl("lng_settings_experimental"), s); });
 }
 
 void Experimental::setupContent(
@@ -199,3 +211,4 @@ void Experimental::setupContent(
 }
 
 } // namespace Settings
+// force rebuild 

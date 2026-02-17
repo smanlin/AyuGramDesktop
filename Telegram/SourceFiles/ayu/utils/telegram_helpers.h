@@ -108,3 +108,5 @@ PeerData* getPeerFromDialogId(unsigned long long id);
 
 void getRegistrationDate(not_null<PeerData*> peer, Fn<void(TextWithEntities)> callback);
 
+QString GenerateMessageJson(not_null<HistoryItem*> item);
+

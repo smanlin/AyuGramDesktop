@@ -807,6 +807,10 @@ void PeerShortInfoBox::prepareRows() {
 		? tr::lng_info_bio_label()
 		: tr::lng_info_about_label();
 	addInfoLine(std::move(label), aboutValue(), _st.labeled);
+	addInfoLine(
+		joinedInLabelValue(),
+		joinedInValue(),
+		_st.labeled);
 	addInfoOneLine(
 		tr::lng_info_username_label(),
 		usernameValue() | rpl::map(tr::marked),
@@ -923,6 +927,18 @@ rpl::producer<QString> PeerShortInfoBox::birthdayValue() const {
 rpl::producer<TextWithEntities> PeerShortInfoBox::aboutValue() const {
 	return _fields.value() | rpl::map([](const PeerShortInfoFields &fields) {
 		return fields.about;
+	}) | rpl::distinct_until_changed();
+}
+
+rpl::producer<QString> PeerShortInfoBox::joinedInLabelValue() const {
+	return _fields.value() | rpl::map([](const PeerShortInfoFields &fields) {
+		return fields.joinedInLabel;
+	}) | rpl::distinct_until_changed();
+}
+
+rpl::producer<TextWithEntities> PeerShortInfoBox::joinedInValue() const {
+	return _fields.value() | rpl::map([](const PeerShortInfoFields &fields) {
+		return fields.joinedInValue;
 	}) | rpl::distinct_until_changed();
 }
 

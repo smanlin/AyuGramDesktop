@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/prepare_short_info_box.h"
 
+#include "apiwrap.h"
 #include "base/unixtime.h"
 #include "boxes/peers/peer_short_info_box.h"
 #include "core/application.h"
@@ -35,6 +36,26 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kOverviewLimit = 48;
+constexpr auto kJoinedDateLoading = TimeId(-2);
+constexpr auto kJoinedDateUnavailable = TimeId(-1);
+
+[[nodiscard]] TimeId ExtractJoinedDate(
+		const MTPChannelParticipant &participant,
+		not_null<ChannelData*> channel) {
+	return participant.match([&](const MTPDchannelParticipantSelf &data) {
+		return TimeId(data.vdate().v);
+	}, [&](const MTPDchannelParticipantAdmin &data) {
+		return TimeId(data.vdate().v);
+	}, [&](const MTPDchannelParticipant &data) {
+		return TimeId(data.vdate().v);
+	}, [&](const MTPDchannelParticipantCreator &) {
+		return channel->date;
+	}, [&](const MTPDchannelParticipantBanned &) {
+		return TimeId(0);
+	}, [&](const MTPDchannelParticipantLeft &) {
+		return TimeId(0);
+	});
+}
 
 struct UserpicState {
 	PeerShortInfoUserpic current;
@@ -453,7 +474,16 @@ object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 		Fn<void()> open,
 		Fn<bool()> videoPaused,
 		Fn<void(Ui::Menu::MenuCallback)> menuFiller,
+		not_null<PeerData*> joinedInPeer,
 		const style::ShortInfoBox *stOverride) {
+	auto contextPeer = joinedInPeer;
+	if (!(contextPeer->isChat() || contextPeer->isMegagroup() || contextPeer->isChannel())) {
+		if (const auto window = peer->session().tryResolveWindow()) {
+			if (const auto currentPeer = window->activeChatCurrent().peer()) {
+				contextPeer = currentPeer;
+			}
+		}
+	}
 	const auto type = peer->isSelf()
 		? PeerShortInfoType::Self
 		: peer->isUser()
@@ -461,14 +491,82 @@ object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 		: peer->isBroadcast()
 		? PeerShortInfoType::Channel
 		: PeerShortInfoType::Group;
+	const auto joinedInChannel = contextPeer->asChannel();
+	const auto hasGroupContext = contextPeer->isChat() || contextPeer->isMegagroup();
+	const auto canCheckJoinedDate = peer->isUser()
+		&& joinedInChannel
+		&& joinedInChannel->isMegagroup();
+	const auto joinedInDate = std::make_shared<rpl::variable<TimeId>>(
+		canCheckJoinedDate ? kJoinedDateLoading : TimeId(0));
+	const auto joinedInName = contextPeer->name();
+	rpl::producer<PeerShortInfoFields> fields = canCheckJoinedDate
+		? (rpl::combine(
+			FieldsValue(peer),
+			joinedInDate->value()
+		) | rpl::map([=](PeerShortInfoFields fields, TimeId joinedDate) {
+			fields.joinedInLabel = qsl("Joined");
+			if (joinedDate == kJoinedDateLoading) {
+				fields.joinedInValue = TextWithEntities{
+					joinedInName + qsl("\nLoading...")
+				};
+			} else if (joinedDate == kJoinedDateUnavailable) {
+				fields.joinedInValue = TextWithEntities{
+					joinedInName + qsl("\nUnavailable")
+				};
+			} else if (joinedDate > 0) {
+				const auto parsed = base::unixtime::parse(joinedDate);
+				fields.joinedInValue = TextWithEntities{
+					joinedInName + qsl("\n")
+						+ (parsed.isNull()
+							? QString::number(joinedDate)
+							: langDayOfMonthFull(parsed.date()))
+				};
+			} else {
+				fields.joinedInLabel = QString();
+				fields.joinedInValue = TextWithEntities();
+			}
+			return fields;
+		}))
+		: (hasGroupContext && peer->isUser())
+		? (FieldsValue(peer) | rpl::map([=](PeerShortInfoFields fields) {
+			fields.joinedInLabel = qsl("Joined");
+			fields.joinedInValue = TextWithEntities{
+				joinedInName + qsl("\nUnavailable")
+			};
+			return fields;
+		}))
+		: peer->isUser()
+		? (FieldsValue(peer) | rpl::map([=](PeerShortInfoFields fields) {
+			fields.joinedInLabel = qsl("Joined");
+			fields.joinedInValue = TextWithEntities{
+				qsl("Context not detected")
+			};
+			return fields;
+		}))
+		: FieldsValue(peer);
+
 	auto userpic = PrepareShortInfoUserpic(peer, st::shortInfoCover);
 	auto result = Box<PeerShortInfoBox>(
 		type,
-		FieldsValue(peer),
+		std::move(fields),
 		StatusValue(peer),
 		std::move(userpic.value),
 		std::move(videoPaused),
 		stOverride);
+
+	if (canCheckJoinedDate) {
+		peer->session().api().request(MTPchannels_GetParticipant(
+			joinedInChannel->inputChannel(),
+			peer->input()
+		)).done([=](const MTPchannels_ChannelParticipant &result) {
+			result.match([&](const MTPDchannels_channelParticipant &data) {
+				joinedInDate->force_assign(
+					ExtractJoinedDate(data.vparticipant(), joinedInChannel));
+			});
+		}).fail([=](const MTP::Error &) {
+			joinedInDate->force_assign(kJoinedDateUnavailable);
+		}).send();
+	}
 
 	if (menuFiller) {
 		result->fillMenuRequests(
@@ -489,6 +587,7 @@ object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 		not_null<PeerData*> peer,
 		std::shared_ptr<ChatHelpers::Show> show,
+		not_null<PeerData*> joinedInPeer,
 		const style::ShortInfoBox *stOverride) {
 	const auto open = [=] {
 		if (const auto window = show->resolveWindow()) {
@@ -513,6 +612,47 @@ object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 		open,
 		videoIsPaused,
 		std::move(menuFiller),
+		joinedInPeer,
+		stOverride);
+}
+
+object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+		not_null<PeerData*> peer,
+		not_null<Window::SessionNavigation*> navigation,
+		not_null<PeerData*> joinedInPeer,
+		const style::ShortInfoBox *stOverride) {
+	return PrepareShortInfoBox(peer, navigation->uiShow(), joinedInPeer, stOverride);
+}
+
+object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+		not_null<PeerData*> peer,
+		Fn<void()> open,
+		Fn<bool()> videoPaused,
+		Fn<void(Ui::Menu::MenuCallback)> menuFiller,
+		const style::ShortInfoBox *stOverride) {
+	return PrepareShortInfoBox(
+		peer,
+		std::move(open),
+		std::move(videoPaused),
+		std::move(menuFiller),
+		peer,
+		stOverride);
+}
+
+object_ptr<Ui::BoxContent> PrepareShortInfoBox(
+		not_null<PeerData*> peer,
+		std::shared_ptr<ChatHelpers::Show> show,
+		const style::ShortInfoBox *stOverride) {
+	auto joinedInPeer = peer;
+	if (const auto window = show->resolveWindow()) {
+		if (const auto currentPeer = window->activeChatCurrent().peer()) {
+			joinedInPeer = currentPeer;
+		}
+	}
+	return PrepareShortInfoBox(
+		peer,
+		std::move(show),
+		joinedInPeer,
 		stOverride);
 }
 
@@ -520,7 +660,16 @@ object_ptr<Ui::BoxContent> PrepareShortInfoBox(
 		not_null<PeerData*> peer,
 		not_null<Window::SessionNavigation*> navigation,
 		const style::ShortInfoBox *stOverride) {
-	return PrepareShortInfoBox(peer, navigation->uiShow(), stOverride);
+	auto joinedInPeer = peer;
+	if (const auto currentPeer
+		= navigation->parentController()->activeChatCurrent().peer()) {
+		joinedInPeer = currentPeer;
+	}
+	return PrepareShortInfoBox(
+		peer,
+		navigation,
+		joinedInPeer,
+		stOverride);
 }
 
 rpl::producer<QString> PrepareShortInfoStatus(not_null<PeerData*> peer) {

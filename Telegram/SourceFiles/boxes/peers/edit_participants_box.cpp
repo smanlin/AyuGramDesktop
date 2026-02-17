@@ -1648,7 +1648,8 @@ void ParticipantsBoxController::rowClicked(not_null<PeerListRow*> row) {
 		if (_role != Role::Profile) {
 			_navigation->parentController()->show(PrepareShortInfoBox(
 				participant,
-				_navigation));
+				_navigation,
+				_peer));
 		} else {
 			_navigation->showPeerInfo(participant);
 		}
@@ -1699,7 +1700,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				std::move(text));
 			if (const auto n = _navigation) {
 				button->setClickedCallback([=] {
-					n->parentController()->show(PrepareShortInfoBox(by, n));
+					n->parentController()->show(PrepareShortInfoBox(by, n, _peer));
 				});
 			}
 			result->addSeparator();
@@ -1732,7 +1733,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				: tr::lng_context_view_group)(tr::now),
 			crl::guard(this, [=, this] {
 				_navigation->parentController()->show(
-					PrepareShortInfoBox(participant, _navigation));
+					PrepareShortInfoBox(participant, _navigation, _peer));
 			}),
 			(participant->isUser()
 				? &st::menuIconProfile

@@ -7,6 +7,8 @@
 #pragma once
 
 #include <unordered_set>
+#include <unordered_map>
+#include <optional>
 #include "ayu/libs/json.hpp"
 #include "ayu/libs/json_ext.hpp"
 
@@ -138,8 +140,10 @@ public:
 	bool quickAdminShortcuts;
 
 	int showPeerId;
+	bool showMessageId;
 	bool showMessageSeconds;
 	bool showMessageShot;
+	bool showViewJson;
 
 	bool stickerConfirmation;
 	bool gifConfirmation;
@@ -152,6 +156,8 @@ public:
 	bool crashReporting;
 	
 	bool improveDC5Connection;
+
+	std::unordered_map<std::string, int> joinedDateCache;
 };
 
 void set_sendReadMessages(bool val);
@@ -248,8 +254,10 @@ void set_channelBottomButton(int val);
 void set_quickAdminShortcuts(bool val);
 
 void set_showPeerId(int val);
+void set_showMessageId(bool val);
 void set_showMessageSeconds(bool val);
 void set_showMessageShot(bool val);
+void set_showViewJson(bool val);
 
 void set_stickerConfirmation(bool val);
 void set_gifConfirmation(bool val);
@@ -261,6 +269,9 @@ void set_adaptiveCoverColor(bool val);
 
 void set_crashReporting(bool val);
 void set_improveDC5Connection(bool val);
+
+void cache_joinedDate(long long channelId, long long userId, int value);
+std::optional<int> get_cachedJoinedDate(long long channelId, long long userId);
 
 inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nlohmann_json_t) {
 	NLOHMANN_JSON_TO(sendReadMessages)
@@ -337,8 +348,10 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(channelBottomButton)
 	NLOHMANN_JSON_TO(quickAdminShortcuts)
 	NLOHMANN_JSON_TO(showPeerId)
+	NLOHMANN_JSON_TO(showMessageId)
 	NLOHMANN_JSON_TO(showMessageSeconds)
 	NLOHMANN_JSON_TO(showMessageShot)
+	NLOHMANN_JSON_TO(showViewJson)
 	NLOHMANN_JSON_TO(stickerConfirmation)
 	NLOHMANN_JSON_TO(gifConfirmation)
 	NLOHMANN_JSON_TO(voiceConfirmation)
@@ -346,6 +359,7 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(adaptiveCoverColor)
 	NLOHMANN_JSON_TO(crashReporting)
 	NLOHMANN_JSON_TO(improveDC5Connection)
+	NLOHMANN_JSON_TO(joinedDateCache)
 }
 
 inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nlohmann_json_t) {
@@ -424,8 +438,10 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(channelBottomButton)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(quickAdminShortcuts)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showPeerId)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(showMessageId)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showMessageSeconds)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showMessageShot)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(showViewJson)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(stickerConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(gifConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(voiceConfirmation)
@@ -433,6 +449,7 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(adaptiveCoverColor)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(crashReporting)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(improveDC5Connection)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(joinedDateCache)
 }
 
 AyuGramSettings &getInstance();

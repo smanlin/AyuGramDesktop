@@ -23,6 +23,10 @@
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "ui/widgets/popup_menu.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
+#include <QtGui/QClipboard>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "window/window_peer_menu.h"
 
@@ -44,10 +48,17 @@
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "api/api_sending.h"
+#include "ui/layers/generic_box.h"
+#include "ayu/ui/boxes/json_viewer_box.h"
 
 namespace AyuUi {
 
+bool needToShowItem(int state) {
+	return state == 1 || (state == 2 && base::IsExtendedContextMenuModifierPressed());
+}
+
 namespace {
+
 
 void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 	const auto session = &peer->session();
@@ -185,9 +196,6 @@ Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controll
 
 }
 
-bool needToShowItem(int state) {
-	return state == 1 || (state == 2 && base::IsExtendedContextMenuModifierPressed());
-}
 
 void AddDeletedMessagesActions(PeerData *peerData,
 							   Data::Thread *thread,
@@ -200,11 +208,6 @@ void AddDeletedMessagesActions(PeerData *peerData,
 	const auto topic = peerData->isForum() ? thread->asTopic() : nullptr;
 	const auto topicId = topic ? topic->rootId().bare : 0;
 
-	// const auto has = AyuMessages::hasDeletedMessages(peerData, topicId);
-	// if (!has) {
-	// 	return;
-	// }
-
 	addCallback(
 		tr::ayu_ViewDeletedMenuText(tr::now),
 		[=]
@@ -213,7 +216,6 @@ void AddDeletedMessagesActions(PeerData *peerData,
 				->showSection(std::make_shared<MessageHistory::SectionMemento>(peerData, nullptr, topicId));
 		},
 		&st::menuIconArchive);
-	// todo view filters
 }
 
 void AddJumpToBeginningAction(PeerData *peerData,
@@ -245,7 +247,6 @@ void AddJumpToBeginningAction(PeerData *peerData,
 			[=](not_null<PeerData*> peer, MsgId id)
 			{
 				if (weak.get()) {
-					// API returns 0 if message "Channel created" (ID: 1) was deleted, which scrolls to the bottom
 					if (id.bare == 0) {
 						id = MsgId(2);
 					}
@@ -453,7 +454,7 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 										 ? item->topic()
 											   ? Dialogs::Key{item->topic()}
 											   : Dialogs::Key{item->history()}
-										 : Dialogs::Key{item->history()};
+											   : Dialogs::Key{item->history()};
 					controller->searchInChat(key, item->from());
 				}
 			},
@@ -544,22 +545,15 @@ void AddRepeaterAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, Histor
 		&st::menuIconRepeat);
 }
 
-
-void AddMessageDetailsAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item) {
+void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	AddMessageDetailsAction(menu, item, HistoryView::Context::History);
 }
 
-void AddMessageDetailsAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, HistoryView::Context context) {
+void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, HistoryView::Context context) {
 	AddRepeaterAction(menu, item, context);
 
 	const auto &settings = AyuSettings::getInstance();
-	if (!needToShowItem(settings.showMessageDetailsInContextMenu)) {
-		return;
-	}
-
-	if (item->isLocal()) {
-		return;
-	}
+	const auto canShowViewJson = settings.showViewJson && !item->isLocal();
 
 	const auto view = item->mainView();
 	const auto forwarded = item->Get<HistoryMessageForwarded>();
@@ -600,21 +594,57 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, 
 
 	const auto mediaSize = media ? getMediaSize(item) : QString();
 	const auto mediaMime = media ? getMediaMime(item) : QString();
-	// todo: bitrate (?)
 	const auto mediaName = media ? getMediaName(item) : QString();
 	const auto mediaResolution = media ? getMediaResolution(item) : QString();
 	const auto mediaDC = media ? getMediaDC(item) : QString();
 
+	if (canShowViewJson) {
+		menu->addAction(
+			AyuHantHelper(qsl("ayu_MessageDetailsViewJson"), qsl("View JSON Data")),
+			[=] {
+				if (const auto controller = item->history()->session().tryResolveWindow()) {
+					QJsonObject json;
+					json.insert(qsl("id"), QString::number(item->id.bare));
+					json.insert(qsl("peer_id"), QString::number(qulonglong(item->history()->peer->id.value)));
+					json.insert(qsl("date"), int(item->date()));
+					json.insert(qsl("out"), item->out());
+					json.insert(qsl("views"), item->hasViews() ? item->viewsCount() : 0);
+					json.insert(qsl("text"), item->originalText().text);
+					json.insert(qsl("has_media"), media != nullptr);
+					json.insert(qsl("media_mime"), mediaMime);
+					json.insert(qsl("media_name"), mediaName);
+					json.insert(qsl("media_size"), mediaSize);
+					json.insert(qsl("media_resolution"), mediaResolution);
+					json.insert(qsl("media_datacenter"), mediaDC);
+
+					const auto payload = QString::fromUtf8(
+						QJsonDocument(json).toJson(QJsonDocument::Indented));
+					controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+						Ui::FillJsonViewerBox(box, payload);
+					}));
+				}
+			},
+			&st::menuIconInfo);
+	}
+
+	if (!needToShowItem(settings.showMessageDetailsInContextMenu)) {
+		return;
+	}
+
+	if (item->isLocal()) {
+		return;
+	}
+
 	const auto hasAnyPostField =
-		!messageViews.isEmpty() ||
-		!messageForwards.isEmpty();
+		!messageViews.isEmpty()
+		|| !messageForwards.isEmpty();
 
 	const auto hasAnyMediaField =
-		!mediaSize.isEmpty() ||
-		!mediaMime.isEmpty() ||
-		!mediaName.isEmpty() ||
-		!mediaResolution.isEmpty() ||
-		!mediaDC.isEmpty();
+		!mediaSize.isEmpty()
+		|| !mediaMime.isEmpty()
+		|| !mediaName.isEmpty()
+		|| !mediaResolution.isEmpty()
+		|| !mediaDC.isEmpty();
 
 	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
 
@@ -622,8 +652,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, 
 		.text = tr::ayu_MessageDetailsPC(tr::now),
 		.handler = nullptr,
 		.icon = &st::menuIconInfo,
-		.fillSubmenu = [&](not_null<Ui::PopupMenu*> menu2)
-		{
+		.fillSubmenu = [=](not_null<Ui::PopupMenu*> menu2) {
 			if (hasAnyPostField) {
 				if (!messageViews.isEmpty()) {
 					menu2->addAction(Ui::ContextActionWithSubText(
@@ -702,15 +731,16 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, 
 				}
 
 				if (!mediaName.isEmpty()) {
-					auto const shortified = mediaName.length() > 20 ? "…" + mediaName.right(20) : mediaName;
+					const auto shortified = (mediaName.length() > 20)
+						? ("..." + mediaName.right(20))
+						: mediaName;
 
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::ayuEditsHistoryIcon,
 						tr::ayu_MessageDetailsFileNamePC(tr::now),
 						shortified,
-						[=]
-						{
+						[=] {
 							QGuiApplication::clipboard()->setText(mediaName);
 						}
 					));

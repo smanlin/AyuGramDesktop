@@ -9,6 +9,9 @@
 #include <functional>
 #include <latch>
 #include <QTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -54,6 +57,8 @@
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_entity.h"
 #include "ui/toast/toast.h"
+#include "window/window_controller.h"
+#include "window/window_session_controller.h"
 
 namespace {
 
@@ -67,6 +72,75 @@ const auto regDateBotUsername = QString("exteraAuthBot");
 constexpr auto regDateBotFallbackId = 6247153446L;
 const auto regDateBotFallbackUsername = QString("ayugrambot");
 
+}
+
+not_null<Main::Session *> currentSession() {
+	if (const auto window = Core::App().activeWindow()) {
+		if (const auto session = window->sessionController()) {
+			return &session->session();
+		}
+	}
+	return &Core::App().domain().active().session();
+}
+
+
+QString GenerateMessageJson(not_null<HistoryItem*> item) {
+	QJsonObject root;
+	root["id"] = (double)item->id.bare;
+	root["date"] = (double)item->date();
+	root["out"] = item->out();
+	root["unread"] = item->unread(item->history()->asThread());
+	
+	if (const auto from = item->from()) {
+		root["from_id"] = (double)(from->id.value & PeerId::kChatTypeMask);
+		root["from_name"] = from->name();
+	}
+	
+	if (const auto peer = item->history()->peer) {
+		root["peer_id"] = (double)(peer->id.value & PeerId::kChatTypeMask);
+		root["peer_name"] = peer->name();
+	}
+
+	if (!item->originalText().text.isEmpty()) {
+		root["text"] = item->originalText().text;
+	}
+
+	if (const auto views = item->Get<HistoryMessageViews>()) {
+		if (views->views.count >= 0) root["views"] = views->views.count;
+		if (views->forwardsCount > 0) root["forwards"] = views->forwardsCount;
+		if (views->replies.count >= 0) root["replies"] = views->replies.count;
+	}
+
+	if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
+		QJsonObject fwd;
+		fwd["date"] = (double)forwarded->originalDate;
+		if (forwarded->originalSender) {
+			fwd["from_id"] = (double)(forwarded->originalSender->id.value & PeerId::kChatTypeMask);
+		}
+		root["forwarded"] = fwd;
+	}
+
+	if (const auto media = item->media()) {
+		QJsonObject med;
+		if (const auto doc = media->document()) {
+			med["document_id"] = (double)doc->id;
+			med["mime"] = doc->mimeString();
+			med["size"] = (double)doc->size;
+			med["dc"] = doc->getDC();
+			if (!doc->filename().isEmpty()) med["filename"] = doc->filename();
+		} else if (const auto photo = media->photo()) {
+			med["photo_id"] = (double)photo->id;
+			med["dc"] = photo->getDC();
+		}
+		root["media"] = med;
+	}
+
+	if (const auto edited = item->Get<HistoryMessageEdited>()) {
+		root["edit_date"] = (double)edited->date;
+	}
+
+	QJsonDocument doc(root);
+	return doc.toJson(QJsonDocument::Indented);
 }
 
 Main::Session *getSession(ID userId) {
@@ -617,6 +691,20 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 		return false;
 	}
 
+	const auto &text = item->originalText().text;
+	if (!text.isEmpty()) {
+		if (text.contains(QString::fromUtf8("\xE7\xAD\xBE\xE5\x88\xB0"), Qt::CaseInsensitive) || // 签到
+			text.contains(QString::fromUtf8("\xE7\xB0\xBD\xE5\x88\xB0"), Qt::CaseInsensitive) || // 簽到
+			text.contains(QString::fromUtf8("\xE7\xA7\xAF\xE5\x88\x86"), Qt::CaseInsensitive) || // 积分
+			text.contains(QString::fromUtf8("\xE7\xA9\x8D\xE5\x88\x86"), Qt::CaseInsensitive) || // 積分
+			text.contains(QString::fromUtf8("\xE6\x9F\xA5\xE8\xAF\xA2"), Qt::CaseInsensitive) || // 查询
+			text.contains(QString::fromUtf8("\xE6\x9F\xA5\xE8\xA9\xA2"), Qt::CaseInsensitive) || // 查詢
+			text.contains(qsl("Check-in"), Qt::CaseInsensitive) ||
+			text.contains(qsl("Check in"), Qt::CaseInsensitive)) {
+			return false;
+		}
+	}
+
 	// Check if this is a private chat with a bot
 	if (const auto possiblyBot = item->history()->peer->asUser()) {
 		return !possiblyBot->isBot() || (settings.saveForBots && possiblyBot->isBot());
@@ -1021,9 +1109,6 @@ void resolveAllChats(const std::map<long long, QString> &peers) {
 	});
 }
 
-not_null<Main::Session*> currentSession() {
-	return &Core::App().domain().active().session();
-}
 
 template<typename T>
 PeerData *getPeerFromDialogId(T id) {
