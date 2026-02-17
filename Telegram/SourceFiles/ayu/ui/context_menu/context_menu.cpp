@@ -463,7 +463,12 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 
-void SendMessageDirectly(HistoryItem *item, History *history, HistoryView::Context context) {
+enum class RepeatMode {
+	Forward,
+	Copy,
+};
+
+void SendMessageDirectly(HistoryItem *item, History *history, HistoryView::Context context, RepeatMode mode) {
 	if (item->id <= 0) return;
 
 	const auto api = &item->history()->peer->session().api();
@@ -474,7 +479,7 @@ void SendMessageDirectly(HistoryItem *item, History *history, HistoryView::Conte
 	const auto hasReply = replyTo.messageId.msg != 0;
 	const auto shiftPressed = base::IsShiftPressed();
 
-	const auto useNoQuote = shiftPressed || inRepliesView;
+	const auto useNoQuote = (mode == RepeatMode::Copy) || shiftPressed || inRepliesView;
 	const auto preserveReply = inRepliesView ? hasReply : (hasReply && shiftPressed);
 
 	const auto sendAs = (peer->isUser() || peer->isChat())
@@ -539,10 +544,22 @@ void AddRepeaterAction(not_null<Ui::PopupMenu *> menu, HistoryItem *item, Histor
 
 	const auto history = item->history();
 
-	menu->addAction(
-		QString("复读"),
-		[=] { SendMessageDirectly(item, history, context); },
-		&st::menuIconRepeat);
+	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
+	callback(Window::PeerMenuCallback::Args{
+		.text = AyuHantHelper(qsl("ayu_RepeatMenuText"), QString("Repeat")),
+		.handler = nullptr,
+		.icon = &st::menuIconRepeat,
+		.fillSubmenu = [=](not_null<Ui::PopupMenu*> submenu) {
+			submenu->addAction(
+				AyuHantHelper(qsl("ayu_RepeatForwardMenuText"), QString("Forward-style Repeat")),
+				[=] { SendMessageDirectly(item, history, context, RepeatMode::Forward); },
+				&st::menuIconForward);
+			submenu->addAction(
+				AyuHantHelper(qsl("ayu_RepeatCopyMenuText"), QString("Copy-style Repeat")),
+				[=] { SendMessageDirectly(item, history, context, RepeatMode::Copy); },
+				&st::menuIconCopy);
+		},
+	});
 }
 
 void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
@@ -906,3 +923,4 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 }
 
 } // namespace AyuUi
+

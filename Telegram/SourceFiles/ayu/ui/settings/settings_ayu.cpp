@@ -305,7 +305,7 @@ void SetupOther(not_null<Ui::VerticalLayout*> container) {
 
 	AddButtonWithIcon(
 		container,
-		rpl::single(AyuHantHelper(qsl("ayu_ImproveDC5Connection"), qsl("優化 DC5 連線路徑"))),
+		rpl::single(AyuHantHelper(qsl("ayu_ImproveDC5Connection"), qsl("Improve DC5 Connection Route"))),
 		st::settingsButtonNoIcon
 	)->toggleOn(
 		rpl::single(settings->improveDC5Connection)
@@ -353,3 +353,4 @@ void AyuGhost::setupContent(not_null<Window::SessionController*> controller) {
 
 } // namespace Settings
 // force rebuild 
+
