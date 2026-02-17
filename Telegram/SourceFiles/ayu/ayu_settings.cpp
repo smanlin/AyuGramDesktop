@@ -241,6 +241,13 @@ AyuGramSettings::AyuGramSettings() {
 
 	saveForBots = false;
 	excludeBotsInGroups = false;
+	deleteBypassKeywordsEnabled = true;
+	deleteBypassKeywords = {
+		QString::fromUtf8("\xE7\xAD\xBE\xE5\x88\xB0"),
+		QString::fromUtf8("\xE7\xA7\xAF\xE5\x88\x86\xE6\x9F\xA5\xE8\xAF\xA2"),
+		QString::fromUtf8("\xE7\xB0\xBD\xE5\x88\xB0"),
+		QString::fromUtf8("\xE7\xA9\x8D\xE5\x88\x86\xE6\x9F\xA5\xE8\xA9\xA2"),
+	};
 
 	// ~ Message filters
 	filtersEnabled = false;
@@ -421,6 +428,13 @@ void set_excludeBotsInGroups(bool val) {
 	settings->excludeBotsInGroups = val;
 }
 
+void set_deleteBypassKeywordsEnabled(bool val) {
+	settings->deleteBypassKeywordsEnabled = val;
+}
+
+void set_deleteBypassKeywords(const std::vector<QString> &val) {
+	settings->deleteBypassKeywords = val;
+}
 void set_filtersEnabled(bool val) {
 	settings->filtersEnabled = val;
 }

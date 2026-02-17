@@ -684,6 +684,24 @@ int getScheduleTime(int64 sumSize) {
 	return time;
 }
 
+bool containsDeleteBypassKeyword(const QString &text) {
+	if (text.isEmpty()) {
+		return false;
+	}
+
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.deleteBypassKeywordsEnabled) {
+		return false;
+	}
+
+	for (const auto &keyword : settings.deleteBypassKeywords) {
+		const auto normalized = keyword.trimmed();
+		if (!normalized.isEmpty() && text.contains(normalized, Qt::CaseInsensitive)) {
+			return true;
+		}
+	}
+	return false;
+}
 bool isMessageSavable(const not_null<HistoryItem*> item) {
 	const auto &settings = AyuSettings::getInstance();
 
@@ -692,17 +710,8 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 	}
 
 	const auto &text = item->originalText().text;
-	if (!text.isEmpty()) {
-		if (text.contains(QString::fromUtf8("\xE7\xAD\xBE\xE5\x88\xB0"), Qt::CaseInsensitive) || // 签到
-			text.contains(QString::fromUtf8("\xE7\xB0\xBD\xE5\x88\xB0"), Qt::CaseInsensitive) || // 簽到
-			text.contains(QString::fromUtf8("\xE7\xA7\xAF\xE5\x88\x86"), Qt::CaseInsensitive) || // 积分
-			text.contains(QString::fromUtf8("\xE7\xA9\x8D\xE5\x88\x86"), Qt::CaseInsensitive) || // 積分
-			text.contains(QString::fromUtf8("\xE6\x9F\xA5\xE8\xAF\xA2"), Qt::CaseInsensitive) || // 查询
-			text.contains(QString::fromUtf8("\xE6\x9F\xA5\xE8\xA9\xA2"), Qt::CaseInsensitive) || // 查詢
-			text.contains(qsl("Check-in"), Qt::CaseInsensitive) ||
-			text.contains(qsl("Check in"), Qt::CaseInsensitive)) {
-			return false;
-		}
+	if (containsDeleteBypassKeyword(text)) {
+		return false;
 	}
 
 	// Check if this is a private chat with a bot

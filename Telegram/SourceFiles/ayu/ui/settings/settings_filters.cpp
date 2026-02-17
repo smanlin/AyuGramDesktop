@@ -25,11 +25,13 @@
 #include "ui/vertical_list.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_controller.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include <QRegularExpression>
 
 #include "ayu/ui/settings/ayu_hant_helper.h"
 
@@ -198,6 +200,93 @@ void SetupFiltersSettings(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 }
 
+
+void SetupDeleteBypassKeywords(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container,
+	not_null<AyuSettings::AyuGramSettings*> settings) {
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsEnable"),
+			qsl("啟用關鍵字直刪"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->deleteBypassKeywordsEnabled)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled) {
+			return (enabled != settings->deleteBypassKeywordsEnabled);
+		}) | on_next(
+		[=](bool enabled) {
+			AyuSettings::set_deleteBypassKeywordsEnabled(enabled);
+			AyuSettings::save();
+		},
+		container->lifetime());
+
+	auto editButton = container->add(object_ptr<Ui::SettingsButton>(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsEdit"),
+			qsl("編輯關鍵字清單")))));
+	editButton->addClickHandler([=] {
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			box->setTitle(rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteBypassKeywordsEdit"),
+				qsl("編輯關鍵字清單"))));
+
+			auto initial = QString();
+			for (const auto &keyword : settings->deleteBypassKeywords) {
+				if (!initial.isEmpty()) {
+					initial += qsl("\n");
+				}
+				initial += keyword;
+			}
+
+			const auto input = box->addRow(
+				object_ptr<Ui::InputField>(
+					box->verticalLayout(),
+					st::defaultInputField,
+					Ui::InputField::Mode::MultiLine,
+					rpl::single(AyuHantHelper(
+						qsl("ayu_DeleteBypassKeywordsPlaceholder"),
+						qsl("可用換行、逗號、分號分隔")))),
+				st::settingsCheckboxPadding);
+			input->setText(initial);
+
+			auto saveAndClose = [=] {
+				auto normalized = input->getLastText();
+				normalized.replace(qsl("\r"), qsl(""));
+
+				std::vector<QString> keywords;
+				const auto parts = normalized.split(
+					QRegularExpression(qsl("[\\r\\n,;\\x{FF0C}\\x{FF1B}]+")),
+					Qt::SkipEmptyParts);
+				for (const auto &row : parts) {
+					const auto keyword = row.trimmed();
+					if (!keyword.isEmpty()) {
+						keywords.push_back(keyword);
+					}
+				}
+
+				AyuSettings::set_deleteBypassKeywords(keywords);
+				AyuSettings::save();
+				box->closeBox();
+			};
+
+			input->submits() | rpl::on_next(saveAndClose, input->lifetime());
+			box->addButton(tr::lng_settings_save(), saveAndClose);
+			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+			box->setFocusCallback([=] { input->setFocusFast(); });
+		}));
+	});
+
+	AddDividerText(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsDescription"),
+			qsl("命中這些關鍵字的訊息將直接刪除，不保留於防刪記錄。"))));
+}
 void SetupShared(not_null<Window::SessionController*> controller,
 				 Ui::VerticalLayout *container) {
 	Ui::AddSkip(container);
@@ -293,7 +382,12 @@ void AyuFilters::setupContent(not_null<Window::SessionController*> controller) {
 		SetupPerDialog(controller, content);
 	}
 
+	AddSkip(content);
+	AddDivider(content);
+	SetupDeleteBypassKeywords(controller, content, &AyuSettings::getInstance());
+
 	ResizeFitChild(this, content);
 }
 
 } // namespace Settings
+

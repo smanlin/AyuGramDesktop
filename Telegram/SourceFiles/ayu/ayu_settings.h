@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <optional>
+#include <vector>
 #include "ayu/libs/json.hpp"
 #include "ayu/libs/json_ext.hpp"
 
@@ -62,6 +63,8 @@ public:
 
 	bool saveForBots;
 	bool excludeBotsInGroups;
+	bool deleteBypassKeywordsEnabled;
+	std::vector<QString> deleteBypassKeywords;
 
 	std::unordered_set<long long> shadowBanIds;
 	bool filtersEnabled;
@@ -177,6 +180,8 @@ void set_saveMessagesHistory(bool val);
 
 void set_saveForBots(bool val);
 void set_excludeBotsInGroups(bool val);
+void set_deleteBypassKeywordsEnabled(bool val);
+void set_deleteBypassKeywords(const std::vector<QString> &val);
 
 void set_filtersEnabled(bool val);
 void set_filtersEnabledInChats(bool val);
@@ -286,6 +291,8 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(saveMessagesHistory)
 	NLOHMANN_JSON_TO(saveForBots)
 	NLOHMANN_JSON_TO(excludeBotsInGroups)
+	NLOHMANN_JSON_TO(deleteBypassKeywordsEnabled)
+	NLOHMANN_JSON_TO(deleteBypassKeywords)
 	NLOHMANN_JSON_TO(shadowBanIds)
 	NLOHMANN_JSON_TO(filtersEnabled)
 	NLOHMANN_JSON_TO(filtersEnabledInChats)
@@ -376,6 +383,8 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveMessagesHistory)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveForBots)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(excludeBotsInGroups)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassKeywordsEnabled)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassKeywords)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(filtersEnabled)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(filtersEnabledInChats)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(shadowBanIds)

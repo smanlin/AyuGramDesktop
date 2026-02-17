@@ -2857,21 +2857,7 @@ void Session::unregisterMessageTTL(
 
 bool ShouldDeleteForSure(not_null<HistoryItem*> item) {
 	const auto &text = item->originalText().text;
-	if (text.isEmpty()) {
-		return false;
-	}
-	static const auto kKeywords = {
-		QString::fromUtf8("签到"),
-		QString::fromUtf8("积分"),
-		QString::fromUtf8("Check-in"),
-		QString::fromUtf8("Sign in"),
-	};
-	for (const auto &k : kKeywords) {
-		if (text.contains(k, Qt::CaseInsensitive)) {
-			return true;
-		}
-	}
-	return false;
+	return containsDeleteBypassKeyword(text);
 }
 
 void Session::checkTTLs() {
