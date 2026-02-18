@@ -209,7 +209,7 @@ void SetupDeleteBypassKeywords(
 		container,
 		rpl::single(AyuHantHelper(
 			qsl("ayu_DeleteBypassKeywordsEnable"),
-			qsl("啟用關鍵字直刪"))),
+			qsl("Enable keyword direct delete"))),
 		st::settingsButtonNoIcon
 	)->toggleOn(
 		rpl::single(settings->deleteBypassKeywordsEnabled)
@@ -224,16 +224,16 @@ void SetupDeleteBypassKeywords(
 		},
 		container->lifetime());
 
-	auto editButton = container->add(object_ptr<Ui::SettingsButton>(
+	auto editKeywordsButton = container->add(object_ptr<Ui::SettingsButton>(
 		container,
 		rpl::single(AyuHantHelper(
 			qsl("ayu_DeleteBypassKeywordsEdit"),
-			qsl("編輯關鍵字清單")))));
-	editButton->addClickHandler([=] {
+			qsl("Edit keyword list")))));
+	editKeywordsButton->addClickHandler([=] {
 		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 			box->setTitle(rpl::single(AyuHantHelper(
 				qsl("ayu_DeleteBypassKeywordsEdit"),
-				qsl("編輯關鍵字清單"))));
+				qsl("Edit keyword list"))));
 
 			auto initial = QString();
 			for (const auto &keyword : settings->deleteBypassKeywords) {
@@ -250,7 +250,7 @@ void SetupDeleteBypassKeywords(
 					Ui::InputField::Mode::MultiLine,
 					rpl::single(AyuHantHelper(
 						qsl("ayu_DeleteBypassKeywordsPlaceholder"),
-						qsl("可用換行、逗號、分號分隔")))),
+						qsl("One per line, or split by comma/semicolon")))),
 				st::settingsCheckboxPadding);
 			input->setText(initial);
 
@@ -285,7 +285,94 @@ void SetupDeleteBypassKeywords(
 		container,
 		rpl::single(AyuHantHelper(
 			qsl("ayu_DeleteBypassKeywordsDescription"),
-			qsl("命中這些關鍵字的訊息將直接刪除，不保留於防刪記錄。"))));
+			qsl("Messages containing these keywords are deleted directly, without anti-delete record."))));
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassUserIdsEnable"),
+			qsl("Enable user_id direct delete"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->deleteBypassUserIdsEnabled)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled) {
+			return (enabled != settings->deleteBypassUserIdsEnabled);
+		}) | on_next(
+		[=](bool enabled) {
+			AyuSettings::set_deleteBypassUserIdsEnabled(enabled);
+			AyuSettings::save();
+		},
+		container->lifetime());
+
+	auto editUserIdsButton = container->add(object_ptr<Ui::SettingsButton>(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassUserIdsEdit"),
+			qsl("Edit user_id list")))));
+	editUserIdsButton->addClickHandler([=] {
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			box->setTitle(rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteBypassUserIdsEdit"),
+				qsl("Edit user_id list"))));
+
+			auto initial = QString();
+			for (const auto userId : settings->deleteBypassUserIds) {
+				if (!initial.isEmpty()) {
+					initial += qsl("\n");
+				}
+				initial += QString::number(userId);
+			}
+
+			const auto input = box->addRow(
+				object_ptr<Ui::InputField>(
+					box->verticalLayout(),
+					st::defaultInputField,
+					Ui::InputField::Mode::MultiLine,
+					rpl::single(AyuHantHelper(
+						qsl("ayu_DeleteBypassUserIdsPlaceholder"),
+						qsl("One per line, or split by comma/semicolon (digits only)")))),
+				st::settingsCheckboxPadding);
+			input->setText(initial);
+
+			auto saveAndClose = [=] {
+				auto normalized = input->getLastText();
+				normalized.replace(qsl("\r"), qsl(""));
+
+				std::vector<long long> userIds;
+				const auto parts = normalized.split(
+					QRegularExpression(qsl("[\\r\\n,;\\x{FF0C}\\x{FF1B}]+")),
+					Qt::SkipEmptyParts);
+				for (const auto &row : parts) {
+					const auto token = row.trimmed();
+					if (token.isEmpty()) {
+						continue;
+					}
+					bool ok = false;
+					const auto parsed = token.toLongLong(&ok);
+					if (ok) {
+						userIds.push_back(parsed);
+					}
+				}
+
+				AyuSettings::set_deleteBypassUserIds(userIds);
+				AyuSettings::save();
+				box->closeBox();
+			};
+
+			input->submits() | rpl::on_next(saveAndClose, input->lifetime());
+			box->addButton(tr::lng_settings_save(), saveAndClose);
+			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+			box->setFocusCallback([=] { input->setFocusFast(); });
+		}));
+	});
+
+	AddDividerText(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassUserIdsDescription"),
+			qsl("Messages from these user_id values are deleted directly, without anti-delete record."))));
 }
 void SetupShared(not_null<Window::SessionController*> controller,
 				 Ui::VerticalLayout *container) {
@@ -390,4 +477,3 @@ void AyuFilters::setupContent(not_null<Window::SessionController*> controller) {
 }
 
 } // namespace Settings
-

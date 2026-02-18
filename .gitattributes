@@ -7,3 +7,26 @@
 
 # Ensure lottie animations are treated as binary files
 *.lottie binary
+
+# Force source/text files to LF to avoid mojibake from mixed endings/encodings.
+*.h text eol=lf
+*.hpp text eol=lf
+*.c text eol=lf
+*.cc text eol=lf
+*.cpp text eol=lf
+*.mm text eol=lf
+*.m text eol=lf
+*.ui text eol=lf
+*.qrc text eol=lf
+*.pro text eol=lf
+*.pri text eol=lf
+*.cmake text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Keep Windows scripts in CRLF.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf

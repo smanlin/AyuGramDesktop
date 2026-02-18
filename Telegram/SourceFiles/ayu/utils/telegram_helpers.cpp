@@ -431,10 +431,10 @@ void readHistory(not_null<HistoryItem*> message) {
 
 QString formatTTL(int time) {
 	if (time == 0x7FFFFFFF) {
-		return QString("👀 %1").arg(tr::ayu_OneViewTTL(tr::now));
+		return QString("?? %1").arg(tr::ayu_OneViewTTL(tr::now));
 	}
 
-	return QString("🕓 %1s").arg(time);
+	return QString("?? %1s").arg(time);
 }
 
 QString getDCName(int dc) {
@@ -702,6 +702,26 @@ bool containsDeleteBypassKeyword(const QString &text) {
 	}
 	return false;
 }
+bool containsDeleteBypassUserId(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.deleteBypassUserIdsEnabled || settings.deleteBypassUserIds.empty()) {
+		return false;
+	}
+
+	const auto from = item->from();
+	const auto user = from ? from->asUser() : nullptr;
+	if (!user) {
+		return false;
+	}
+
+	const auto senderId = static_cast<long long>(getBareID(user));
+	for (const auto &allowedId : settings.deleteBypassUserIds) {
+		if (allowedId == senderId) {
+			return true;
+		}
+	}
+	return false;
+}
 bool isMessageSavable(const not_null<HistoryItem*> item) {
 	const auto &settings = AyuSettings::getInstance();
 
@@ -710,7 +730,7 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 	}
 
 	const auto &text = item->originalText().text;
-	if (containsDeleteBypassKeyword(text)) {
+	if (containsDeleteBypassKeyword(text) || containsDeleteBypassUserId(item)) {
 		return false;
 	}
 
@@ -857,16 +877,16 @@ void searchPeerInner(const QString &peerId, Main::Session *session, const Userna
 				continue;
 			}
 
-			QString id; // 🆔
-			QString title; // 🏷
-			QString username; // 📧
+			QString id; // ??
+			QString title; // ?
+			QString username; // ?
 
 			for (auto &line : text.split('\n')) {
-				if (line.startsWith("🆔")) {
+				if (line.startsWith("??")) {
 					id = line.mid(line.indexOf(": ") + 2).trimmed();
-				} else if (line.startsWith("🏷")) {
+				} else if (line.startsWith("?")) {
 					title = line.mid(line.indexOf(": ") + 2);
-				} else if (line.startsWith("📧")) {
+				} else if (line.startsWith("?")) {
 					username = line.mid(line.indexOf(": ") + 2);
 				}
 			}
@@ -1002,10 +1022,10 @@ TextWithTags extractText(not_null<HistoryItem*> item) {
 	QString text;
 	if (const auto media = item->media()) {
 		if (const auto poll = media->poll()) {
-			text.append("\xF0\x9F\x93\x8A ") // 📊
+			text.append("\xF0\x9F\x93\x8A ") // ??
 				.append(poll->question.text).append("\n");
 			for (const auto &answer : poll->answers) {
-				text.append("• ").append(answer.text.text).append("\n");
+				text.append("??").append(answer.text.text).append("\n");
 			}
 		}
 	}

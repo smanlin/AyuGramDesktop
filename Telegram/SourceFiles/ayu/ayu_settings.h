@@ -65,6 +65,8 @@ public:
 	bool excludeBotsInGroups;
 	bool deleteBypassKeywordsEnabled;
 	std::vector<QString> deleteBypassKeywords;
+	bool deleteBypassUserIdsEnabled;
+	std::vector<long long> deleteBypassUserIds;
 
 	std::unordered_set<long long> shadowBanIds;
 	bool filtersEnabled;
@@ -182,6 +184,8 @@ void set_saveForBots(bool val);
 void set_excludeBotsInGroups(bool val);
 void set_deleteBypassKeywordsEnabled(bool val);
 void set_deleteBypassKeywords(const std::vector<QString> &val);
+void set_deleteBypassUserIdsEnabled(bool val);
+void set_deleteBypassUserIds(const std::vector<long long> &val);
 
 void set_filtersEnabled(bool val);
 void set_filtersEnabledInChats(bool val);
@@ -293,6 +297,8 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(excludeBotsInGroups)
 	NLOHMANN_JSON_TO(deleteBypassKeywordsEnabled)
 	NLOHMANN_JSON_TO(deleteBypassKeywords)
+	NLOHMANN_JSON_TO(deleteBypassUserIdsEnabled)
+	NLOHMANN_JSON_TO(deleteBypassUserIds)
 	NLOHMANN_JSON_TO(shadowBanIds)
 	NLOHMANN_JSON_TO(filtersEnabled)
 	NLOHMANN_JSON_TO(filtersEnabledInChats)
@@ -385,6 +391,8 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(excludeBotsInGroups)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassKeywordsEnabled)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassKeywords)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassUserIdsEnabled)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassUserIds)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(filtersEnabled)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(filtersEnabledInChats)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(shadowBanIds)
@@ -486,3 +494,4 @@ void triggerHistoryUpdate();
 rpl::producer<> get_historyUpdateReactive();
 
 }
+

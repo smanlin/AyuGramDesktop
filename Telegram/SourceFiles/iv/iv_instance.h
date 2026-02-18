@@ -23,6 +23,7 @@ namespace Iv {
 class Data;
 class Shown;
 class TonSite;
+class TLViewer;
 
 class Instance final {
 public:
@@ -50,6 +51,8 @@ public:
 		not_null<Main::Session*> session,
 		QString uri,
 		QVariant context = {});
+
+	void showTLViewer(int32 layer, const QString &object);
 
 	void showTonSite(
 		const QString &uri,
@@ -103,6 +106,7 @@ private:
 	mtpRequestId _ivRequestId = 0;
 
 	std::unique_ptr<TonSite> _tonSite;
+	std::unique_ptr<TLViewer> _tlv;
 
 	rpl::lifetime _lifetime;
 
