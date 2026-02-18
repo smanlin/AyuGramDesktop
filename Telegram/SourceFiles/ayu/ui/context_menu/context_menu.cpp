@@ -19,6 +19,8 @@
 #include "main/session/send_as_peers.h"
 
 #include "core/mime_type.h"
+#include "core/application.h"
+#include "iv/iv_instance.h"
 #include "styles/style_ayu_icons.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -619,31 +621,41 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, H
 		menu->addAction(
 			AyuHantHelper(qsl("ayu_MessageDetailsViewJson"), qsl("View JSON Data")),
 			[=] {
-				if (const auto controller = item->history()->session().tryResolveWindow()) {
-					QJsonObject json;
-					json.insert(qsl("id"), QString::number(item->id.bare));
-					json.insert(qsl("peer_id"), QString::number(qulonglong(item->history()->peer->id.value)));
-					json.insert(qsl("date"), int(item->date()));
-					json.insert(qsl("out"), item->out());
-					json.insert(qsl("views"), item->hasViews() ? item->viewsCount() : 0);
-					json.insert(qsl("text"), item->originalText().text);
-					json.insert(qsl("has_media"), media != nullptr);
-					json.insert(qsl("media_mime"), mediaMime);
-					json.insert(qsl("media_name"), mediaName);
-					json.insert(qsl("media_size"), mediaSize);
-					json.insert(qsl("media_resolution"), mediaResolution);
-					json.insert(qsl("media_datacenter"), mediaDC);
+				auto json = QJsonObject();
+				json.insert(qsl("id"), QString::number(item->id.bare));
+				json.insert(qsl("peer_id"), QString::number(qulonglong(item->history()->peer->id.value)));
+				json.insert(qsl("date"), int(item->date()));
+				json.insert(qsl("out"), item->out());
+				json.insert(qsl("views"), item->hasViews() ? item->viewsCount() : 0);
+				json.insert(qsl("text"), item->originalText().text);
+				json.insert(qsl("has_media"), media != nullptr);
+				json.insert(qsl("media_mime"), mediaMime);
+				json.insert(qsl("media_name"), mediaName);
+				json.insert(qsl("media_size"), mediaSize);
+				json.insert(qsl("media_resolution"), mediaResolution);
+				json.insert(qsl("media_datacenter"), mediaDC);
+				const auto payload = QString::fromUtf8(
+					QJsonDocument(json).toJson(QJsonDocument::Indented));
 
-					const auto payload = QString::fromUtf8(
-						QJsonDocument(json).toJson(QJsonDocument::Indented));
-					controller->show(Box([=](not_null<Ui::GenericBox*> box) {
-						Ui::FillJsonViewerBox(box, payload);
-					}));
-				}
+				const auto showLocal = [=] {
+					if (const auto controller = item->history()->session().tryResolveWindow()) {
+						controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+							Ui::FillJsonViewerBox(box, payload);
+						}));
+					}
+				};
+
+				item->history()->session().api().exportMessageAsBase64(
+					item,
+					[=](const QString &base64) {
+						Core::App().iv().showTLViewer(MTP::details::kCurrentLayer, base64);
+					},
+					[=] {
+						showLocal();
+					});
 			},
 			&st::menuIconInfo);
 	}
-
 	if (!needToShowItem(settings.showMessageDetailsInContextMenu)) {
 		return;
 	}

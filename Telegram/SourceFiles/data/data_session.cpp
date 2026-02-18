@@ -2825,7 +2825,7 @@ void Session::unregisterMessageTTL(
 
 bool ShouldDeleteForSure(not_null<HistoryItem*> item) {
 	const auto &text = item->originalText().text;
-	return containsDeleteBypassKeyword(text);
+	return containsDeleteBypassKeyword(text) || containsDeleteBypassUserId(item);
 }
 
 void Session::checkTTLs() {

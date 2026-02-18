@@ -248,6 +248,8 @@ AyuGramSettings::AyuGramSettings() {
 		QString::fromUtf8("\xE7\xB0\xBD\xE5\x88\xB0"),
 		QString::fromUtf8("\xE7\xA9\x8D\xE5\x88\x86\xE6\x9F\xA5\xE8\xA9\xA2"),
 	};
+	deleteBypassUserIdsEnabled = false;
+	deleteBypassUserIds = {};
 
 	// ~ Message filters
 	filtersEnabled = false;
@@ -434,6 +436,14 @@ void set_deleteBypassKeywordsEnabled(bool val) {
 
 void set_deleteBypassKeywords(const std::vector<QString> &val) {
 	settings->deleteBypassKeywords = val;
+}
+
+void set_deleteBypassUserIdsEnabled(bool val) {
+	settings->deleteBypassUserIdsEnabled = val;
+}
+
+void set_deleteBypassUserIds(const std::vector<long long> &val) {
+	settings->deleteBypassUserIds = val;
 }
 void set_filtersEnabled(bool val) {
 	settings->filtersEnabled = val;

@@ -1859,7 +1859,6 @@ void Message::paintText(
 	const auto stm = context.messageStyle();
 	p.setPen(stm->historyTextFg);
 	p.setFont(st::msgFont);
-	prepareCustomEmojiPaint(p, context, text());
 	if (const auto botTop = Get<FakeBotAboutTop>()) {
 		botTop->text.drawLeftElided(
 			p,
@@ -1869,6 +1868,11 @@ void Message::paintText(
 			width());
 		trect.setY(trect.y() + botTop->height);
 	}
+	if (!context.clip.intersects(trect)
+		&& context.skipDrawingParts == PaintContext::SkipDrawingParts::None) {
+		return;
+	}
+	prepareCustomEmojiPaint(p, context, text());
 	auto highlightRequest = context.computeHighlightCache();
 	text().draw(p, {
 		.position = trect.topLeft(),
