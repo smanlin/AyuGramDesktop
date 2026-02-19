@@ -157,13 +157,23 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 		return TimeId(data.vdate().v);
 	}, [&](const MTPDchannelParticipantCreator &) {
 		return channel->date;
-	}, [&](const MTPDchannelParticipantBanned &) {
-		return TimeId(0);
+	}, [&](const MTPDchannelParticipantBanned &data) {
+		return data.is_left() ? TimeId(0) : TimeId(data.vdate().v);
 	}, [&](const MTPDchannelParticipantLeft &) {
 		return TimeId(0);
 	});
 }
 
+
+[[nodiscard]] bool IsRestrictedParticipant(const MTPChannelParticipant &participant) {
+	return participant.match(
+		[](const MTPDchannelParticipantBanned &data) {
+			return !data.is_left();
+		},
+		[](const auto &) {
+			return false;
+		});
+}
 [[nodiscard]] std::optional<TimeId> ExtractJoinedDateFromParticipants(
 		const MTPDchannels_channelParticipants &data,
 		PeerId userPeerId,
@@ -203,7 +213,7 @@ void SaveJoinedDateToCache(PeerId user, PeerId channel, TimeId value) {
 [[nodiscard]] QString FormatJoinedDate(TimeId value) {
 	return QLocale().toString(
 		base::unixtime::parse(value),
-		qsl("yyyy-MM-dd HH:mm"));
+		qsl("yy/MM/dd HH:mm"));
 }
 
 [[nodiscard]] bool IsFinalJoinedError(const MTP::Error &error) {
@@ -1888,9 +1898,13 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		if (!joinedInChannels.empty()) {
 			const auto joinedInDate = std::make_shared<rpl::variable<TimeId>>(
 				kMemberJoinedDateLoading);
-			addInfoOneLine(
+			const auto joinedFromRestricted = std::make_shared<rpl::variable<bool>>(false);
+			const auto joinedLine = addInfoOneLine(
 				rpl::single(QString("Joined")),
-				joinedInDate->value() | rpl::map([](TimeId date) {
+				rpl::combine(
+					joinedInDate->value(),
+					joinedFromRestricted->value()
+				) | rpl::map([](TimeId date, bool fromRestricted) {
 					if (date == kMemberJoinedDateLoading) {
 						return TextWithEntities{ QString("Loading...") };
 					} else if (date == kMemberJoinedDateUnavailable) {
@@ -1898,15 +1912,21 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 					} else if (date == kMemberJoinedDateUnknown) {
 						return TextWithEntities{ QString("Unknown") };
 					}
-					return TextWithEntities{ FormatJoinedDate(date) };
+					auto text = FormatJoinedDate(date);
+					if (fromRestricted) {
+						text += qsl(" (R)");
+					}
+					return TextWithEntities{ text };
 				}),
 				QString());
+			const auto joinedLineWrap = joinedLine.wrap.get();
 			const auto requestJoined = std::make_shared<std::function<void(int, int)>>();
 			*requestJoined = [=](int channelIndex, int retryCount) {
 				Expects(channelIndex >= 0 && channelIndex < int(joinedInChannels.size()));
 				const auto channel = joinedInChannels[channelIndex];
 				const auto userId = user->id.value & PeerId::kChatTypeMask;
 				const auto channelId = channel->id.value & PeerId::kChatTypeMask;
+				joinedFromRestricted->force_assign(false);
 				JOINED_DEBUG_LOG(("Ayu JoinedInfo: request user=%1 channel=%2 index=%3/%4 retry=%5")
 					.arg(userId)
 					.arg(channelId)
@@ -1918,6 +1938,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 					user->input()
 				)).done([=](const MTPchannels_ChannelParticipant &response) {
 					response.match([&](const MTPDchannels_channelParticipant &data) {
+						const auto fromRestrictedDirect = IsRestrictedParticipant(data.vparticipant());
 						const auto joined = ExtractJoinedDate(data.vparticipant(), channel);
 						JOINED_DEBUG_LOG(("Ayu JoinedInfo: success user=%1 channel=%2 joined=%3")
 							.arg(userId)
@@ -1934,12 +1955,14 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 									.arg(userId)
 									.arg(channelId)
 									.arg(*cached));
-								joinedInDate->force_assign(*cached);
+								joinedFromRestricted->force_assign(false);
+									joinedInDate->force_assign(*cached);
 							} else {
 								joinedInDate->force_assign(kMemberJoinedDateUnknown);
 							}
 						} else {
 							SaveJoinedDateToCache(user->id, channel->id, joined);
+							joinedFromRestricted->force_assign(fromRestrictedDirect);
 							joinedInDate->force_assign(joined);
 						}
 					}, [&](const auto &) {
@@ -1969,84 +1992,140 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 						.arg(retryCount));
 					if (error.type() == u"PEER_ID_INVALID"_q) {
 						if (retryCount == 0) {
-							const auto query = user->username();
-							JOINED_DEBUG_LOG(("Ayu JoinedInfo: peer-id-invalid, refresh-participants user=%1 channel=%2 query=%3")
-								.arg(userId)
-								.arg(channelId)
-								.arg(query));
-							const auto refreshRequestId = user->session().api().request(MTPchannels_GetParticipants(
-								channel->inputChannel(),
-								query.isEmpty()
-									? MTP_channelParticipantsRecent()
-									: MTP_channelParticipantsSearch(MTP_string(query)),
-								MTP_int(0),
-								MTP_int(200),
-								MTP_long(0)
-							)).done([=](const MTPchannels_ChannelParticipants &list) {
-								list.match([&](const MTPDchannels_channelParticipants &data) {
-									channel->owner().processUsers(data.vusers());
-									if (const auto joined = ExtractJoinedDateFromParticipants(
-										data,
-										user->id,
-										channel)) {
-										JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-hit user=%1 channel=%2 joined=%3")
-											.arg(userId)
-											.arg(channelId)
-											.arg(*joined));
-										if (*joined <= 0) {
-											if (const auto cached = LookupJoinedDateFromCache(
-												user->id,
-												channel->id)) {
-												JOINED_DEBUG_LOG(("Ayu JoinedInfo: cache-hit-after-refresh user=%1 channel=%2 joined=%3")
-													.arg(userId)
-													.arg(channelId)
-													.arg(*cached));
-												joinedInDate->force_assign(*cached);
-											} else {
-												joinedInDate->force_assign(kMemberJoinedDateUnknown);
-											}
-										} else {
-											SaveJoinedDateToCache(user->id, channel->id, *joined);
-											joinedInDate->force_assign(*joined);
-										}
-										return;
-									}
-									JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-miss user=%1 channel=%2, retry-getparticipant")
-										.arg(userId)
-										.arg(channelId));
-									(*requestJoined)(channelIndex, 1);
-								}, [&](const MTPDchannels_channelParticipantsNotModified &) {
-									JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-not-modified user=%1 channel=%2, retry-getparticipant")
-										.arg(userId)
-										.arg(channelId));
-									(*requestJoined)(channelIndex, 1);
-								});
-							}).fail([=](const MTP::Error &refreshError) {
-								JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-fail user=%1 channel=%2 code=%3 type=%4")
-									.arg(userId)
-									.arg(channelId)
-									.arg(refreshError.code())
-									.arg(refreshError.type()));
+							auto queries = std::vector<QString>{
+								QString::number(userId),
+								user->username().trimmed(),
+								user->name().trimmed(),
+							};
+							auto dedupedQueries = std::vector<QString>();
+							for (const auto &value : queries) {
+								if (value.isEmpty() || ranges::contains(dedupedQueries, value)) {
+									continue;
+								}
+								dedupedQueries.push_back(value);
+							}
+							if (dedupedQueries.empty()) {
+								dedupedQueries.push_back(QString::number(userId));
+							}
+							queries = std::move(dedupedQueries);
+							const auto queriesShared = std::make_shared<std::vector<QString>>(
+								std::move(queries));
+							const auto finalizeUnknown = [=] {
 								if (canTryOtherChannel) {
 									(*requestJoined)(nextIndex, 0);
+									return;
+								}
+								if (const auto cached = LookupJoinedDateFromCache(
+									user->id,
+									channel->id)) {
+									JOINED_DEBUG_LOG(("Ayu JoinedInfo: cache-hit-on-refresh-fail user=%1 channel=%2 joined=%3")
+										.arg(userId)
+										.arg(channelId)
+										.arg(*cached));
+									joinedFromRestricted->force_assign(false);
+									joinedInDate->force_assign(*cached);
 								} else {
-									if (const auto cached = LookupJoinedDateFromCache(
-										user->id,
-										channel->id)) {
-										JOINED_DEBUG_LOG(("Ayu JoinedInfo: cache-hit-on-refresh-fail user=%1 channel=%2 joined=%3")
+									joinedInDate->force_assign(kMemberJoinedDateUnknown);
+								}
+							};
+							const auto requestRestricted = std::make_shared<std::function<void(int, int)>>();
+							*requestRestricted = [=](int queryIndex, int filterIndex) {
+								if (queryIndex >= int(queriesShared->size())) {
+									JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-exhausted user=%1 channel=%2")
+										.arg(userId)
+										.arg(channelId));
+									finalizeUnknown();
+									return;
+								}
+								const auto query = (*queriesShared)[queryIndex];
+								const auto filterName = (filterIndex == 0)
+									? QString("kicked")
+									: (filterIndex == 1)
+									? QString("banned")
+									: QString("search");
+								JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-try user=%1 channel=%2 query=%3 filter=%4")
+									.arg(userId)
+									.arg(channelId)
+									.arg(query)
+									.arg(filterName));
+								const auto nextStep = [=] {
+									if (filterIndex < 2) {
+										(*requestRestricted)(queryIndex, filterIndex + 1);
+									} else {
+										(*requestRestricted)(queryIndex + 1, 0);
+									}
+								};
+								const auto sendRequestWithFilter = [=](const auto &filter) {
+									return user->session().api().request(MTPchannels_GetParticipants(
+										channel->inputChannel(),
+										filter,
+										MTP_int(0),
+										MTP_int(200),
+										MTP_long(0)
+									)).done([=](const MTPchannels_ChannelParticipants &list) {
+										auto matched = false;
+										list.match([&](const MTPDchannels_channelParticipants &data) {
+											channel->owner().processUsers(data.vusers());
+											if (const auto joined = ExtractJoinedDateFromParticipants(
+                                                data,
+                                                user->id,
+                                                channel)) {
+                                                matched = true;
+                                                const auto fromRestrictedFilter = (filterIndex <= 1);
+                                                JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-hit user=%1 channel=%2 joined=%3 query=%4 filter=%5")
+                                                    .arg(userId)
+                                                    .arg(channelId)
+                                                    .arg(*joined)
+                                                    .arg(query)
+                                                    .arg(filterName));
+                                                if (*joined <= 0) {
+                                                    if (filterIndex <= 1) {
+                                                        joinedLineWrap->toggle(false, anim::type::instant);
+                                                        return;
+                                                    }
+                                                    joinedFromRestricted->force_assign(false);
+                                                    if (const auto cached = LookupJoinedDateFromCache(
+                                                        user->id,
+                                                        channel->id)) {
+                                                        joinedInDate->force_assign(*cached);
+                                                    } else {
+                                                        joinedInDate->force_assign(kMemberJoinedDateUnknown);
+                                                    }
+                                                } else {
+                                                    joinedFromRestricted->force_assign(fromRestrictedFilter);
+                                                    SaveJoinedDateToCache(user->id, channel->id, *joined);
+                                                    joinedInDate->force_assign(*joined);
+                                                }
+                                            }
+                                        }, [&](const MTPDchannels_channelParticipantsNotModified &) {
+										});
+										if (!matched) {
+											nextStep();
+										}
+									}).fail([=](const MTP::Error &refreshError) {
+										JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-fail user=%1 channel=%2 code=%3 type=%4 query=%5 filter=%6")
 											.arg(userId)
 											.arg(channelId)
-											.arg(*cached));
-										joinedInDate->force_assign(*cached);
-									} else {
-										joinedInDate->force_assign(kMemberJoinedDateUnknown);
-									}
-								}
-							}).send();
-							JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-request-id user=%1 channel=%2 reqId=%3")
-								.arg(userId)
-								.arg(channelId)
-								.arg(refreshRequestId));
+											.arg(refreshError.code())
+											.arg(refreshError.type())
+											.arg(query)
+											.arg(filterName));
+										nextStep();
+									}).send();
+								};
+								const auto refreshRequestId = (filterIndex == 0)
+									? sendRequestWithFilter(MTP_channelParticipantsKicked(MTP_string(query)))
+									: (filterIndex == 1)
+									? sendRequestWithFilter(MTP_channelParticipantsBanned(MTP_string(query)))
+									: sendRequestWithFilter(MTP_channelParticipantsSearch(MTP_string(query)));
+								JOINED_DEBUG_LOG(("Ayu JoinedInfo: refresh-request-id user=%1 channel=%2 reqId=%3 query=%4 filter=%5")
+									.arg(userId)
+									.arg(channelId)
+									.arg(refreshRequestId)
+									.arg(query)
+									.arg(filterName));
+							};
+							(*requestRestricted)(0, 0);
 							return;
 						}
 						if (canTryOtherChannel) {
@@ -2067,16 +2146,28 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 								.arg(userId)
 								.arg(channelId)
 								.arg(*cached));
-							joinedInDate->force_assign(*cached);
+							joinedFromRestricted->force_assign(false);
+									joinedInDate->force_assign(*cached);
 						} else {
 							joinedInDate->force_assign(kMemberJoinedDateUnknown);
 						}
 						return;
 					}
-					if (error.type() == u"USER_NOT_PARTICIPANT"_q && canTryOtherChannel) {
+					if (error.type() == u"USER_NOT_PARTICIPANT"_q) {
+					if (canTryOtherChannel) {
 						(*requestJoined)(nextIndex, 0);
-						return;
+					} else {
+						joinedFromRestricted->force_assign(false);
+						if (const auto cached = LookupJoinedDateFromCache(
+							user->id,
+							channel->id)) {
+							joinedInDate->force_assign(*cached);
+						} else {
+							joinedInDate->force_assign(kMemberJoinedDateUnknown);
+						}
 					}
+					return;
+				}
 					if (!IsFinalJoinedError(error) && (retryCount < 2)) {
 						JOINED_DEBUG_LOG(("Ayu JoinedInfo: retry user=%1 channel=%2 nextRetry=%3")
 							.arg(userId)
@@ -3679,3 +3770,5 @@ void AddDetails(
 
 } // namespace Profile
 } // namespace Info
+
+
