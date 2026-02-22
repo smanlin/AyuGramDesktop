@@ -827,6 +827,9 @@ rpl::producer<int> AddSlowmodeSlider(
 		}
 	}
 	const auto channel = peer->asChannel();
+	if (channel) {
+		channel->updateFull();
+	}
 	auto &lifetime = container->lifetime();
 	const auto secondsCount = lifetime.make_state<rpl::variable<int>>(
 		channel ? channel->slowmodeSeconds() : 0);
@@ -950,6 +953,9 @@ rpl::producer<int> AddBoostsUnrestrictSlider(
 		}
 	}
 	const auto channel = peer->asChannel();
+	if (channel) {
+		channel->updateFull();
+	}
 	auto &lifetime = container->lifetime();
 	const auto boostsUnrestrict = lifetime.make_state<rpl::variable<int>>(
 		channel ? channel->boostsUnrestrict() : 0);
@@ -1075,12 +1081,26 @@ void AddBannedButtons(
 		}
 	}
 	const auto channel = peer->asChannel();
+	const auto exceptionsText = std::make_shared<rpl::variable<QString>>(
+		qsl("0"));
+	if (channel) {
+		channel->session().api().request(MTPchannels_GetParticipants(
+			channel->inputChannel(),
+			MTP_channelParticipantsBanned(MTP_string()),
+			MTP_int(0),
+			MTP_int(1),
+			MTP_long(0)
+		)).done([exceptionsText](const MTPchannels_ChannelParticipants &result) {
+			result.match([&](const MTPDchannels_channelParticipants &data) {
+				*exceptionsText = QString::number(std::max(0, data.vcount().v));
+			}, [](const MTPDchannels_channelParticipantsNotModified &) {
+			});
+		}).send();
+	}
 	container->add(EditPeerInfoBox::CreateButton(
 		container,
 		tr::lng_manage_peer_exceptions(),
-		(channel
-			? Info::Profile::RestrictedCountValue(channel)
-			: rpl::single(0)) | ToPositiveNumberString(),
+		exceptionsText->value(),
 		[=] {
 			ParticipantsBoxController::Start(
 				navigation,
@@ -1174,6 +1194,9 @@ void ShowEditPeerPermissionsBox(
 	};
 	const auto state = inner->lifetime().make_state<State>();
 	const auto channel = peer->asChannel();
+	if (channel) {
+		channel->updateFull();
+	}
 	const auto available = channel && channel->paidMessagesAvailable();
 
 	Ui::AddSkip(inner);
@@ -1522,3 +1545,5 @@ EditFlagsControl<Data::ChatbotsPermissions> CreateEditChatbotPermissions(
 
 	return result;
 }
+
+
