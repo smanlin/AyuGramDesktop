@@ -1848,8 +1848,13 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		});
 
 		std::vector<ChannelData*> joinedInChannels;
+		const auto canQueryJoinedIn = [&](ChannelData *channel) {
+			return channel
+				&& channel->amIn()
+				&& (channel->amCreator() || channel->hasAdminRights());
+		};
 		const auto pushJoinedChannel = [&](ChannelData *channel) {
-			if (!channel) {
+			if (!canQueryJoinedIn(channel)) {
 				return;
 			}
 			if (ranges::contains(joinedInChannels, channel)) {
