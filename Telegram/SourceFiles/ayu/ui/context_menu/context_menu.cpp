@@ -445,7 +445,9 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 
 	if (item->history()->peer->isChat() || item->history()->peer->isMegagroup()) {
 		menu->addAction(
-			tr::ayu_UserMessagesMenuText(tr::now),
+			AyuHantHelper(
+				qsl("ayu_UserMessagesMenuText"),
+				tr::ayu_UserMessagesMenuText(tr::now)),
 			[=]
 			{
 				if (const auto controller = item->history()->session().tryResolveWindow()) {

@@ -761,17 +761,24 @@ void searchPeerInner(const QString &peerId, Main::Session *session, const Userna
 				continue;
 			}
 
-			QString id; // 🆔
-			QString title; // 🏷
-			QString username; // 📧
+			QString id;
+			QString title;
+			QString username;
 
-			for (auto &line : text.split('\n')) {
-				if (line.startsWith("🆔")) {
-					id = line.mid(line.indexOf(": ") + 2).trimmed();
-				} else if (line.startsWith("🏷")) {
-					title = line.mid(line.indexOf(": ") + 2);
-				} else if (line.startsWith("📧")) {
-					username = line.mid(line.indexOf(": ") + 2);
+			for (const auto &lineRaw : text.split('\n')) {
+				const auto line = lineRaw.trimmed();
+				const auto split = line.indexOf(":");
+				if (split <= 0) {
+					continue;
+				}
+				const auto key = line.left(split).trimmed().toLower();
+				const auto value = line.mid(split + 1).trimmed();
+				if (key.contains("id")) {
+					id = value;
+				} else if (key.contains("title") || key.contains(QString::fromUtf8("標題"))) {
+					title = value;
+				} else if (key.contains("username") || key.contains(QString::fromUtf8("用戶名")) || key.contains(QString::fromUtf8("使用者名稱"))) {
+					username = value;
 				}
 			}
 
@@ -906,8 +913,8 @@ TextWithTags extractText(not_null<HistoryItem*> item) {
 	QString text;
 	if (const auto media = item->media()) {
 		if (const auto poll = media->poll()) {
-			text.append("\xF0\x9F\x93\x8A ") // 📊
-				.append(poll->question.text).append("\n");
+				text.append("\xF0\x9F\x93\x8A ") // poll
+					.append(poll->question.text).append("\n");
 			for (const auto &answer : poll->answers) {
 				text.append("• ").append(answer.text.text).append("\n");
 			}
