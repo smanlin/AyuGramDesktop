@@ -251,8 +251,8 @@ QImage addPadding(const QImage &original) {
 	}
 
 	QImage paddedImage(
-		original.width() + 2 * st::messageShotPadding * style::DevicePixelRatio(),
-		original.height() + 2 * st::messageShotPadding * style::DevicePixelRatio(),
+		original.width() + 2 * st::messageShotPadding,
+		original.height() + 2 * st::messageShotPadding,
 		QImage::Format_ARGB32_Premultiplied
 	);
 	paddedImage.setDevicePixelRatio(style::DevicePixelRatio());
@@ -373,8 +373,6 @@ QImage Make(not_null<QWidget*> box, const ShotConfig &config) {
 		height += view->resizeGetHeight(width);
 	}
 
-	width *= style::DevicePixelRatio();
-	height *= style::DevicePixelRatio();
 
 	// create the image
 	QImage image(width, height, QImage::Format_ARGB32_Premultiplied);
@@ -389,6 +387,11 @@ QImage Make(not_null<QWidget*> box, const ShotConfig &config) {
 	Painter p(&image);
 
 	// draw the messages
+	auto context = controller->defaultChatTheme()->preparePaintContext(
+		st.get(),
+		viewport,
+		viewport,
+		true);
 	int y = 0;
 	for (int i = 0; i < messages.size(); i++) {
 		const auto &message = messages[i];
@@ -397,18 +400,13 @@ QImage Make(not_null<QWidget*> box, const ShotConfig &config) {
 		view->revealSpoilers();
 
 		const auto displayUserpic = view->displayFromPhoto() || message->isPost();
+		const auto drawContext = context.translated(0, -y);
 
-		const auto rect = QRect(0, y, width, view->height());
 
-		auto context = controller->defaultChatTheme()->preparePaintContext(
-			st.get(),
-			viewport,
-			rect,
-			true);
-
+		p.save();
 		p.translate(0, y);
-		view->draw(p, context);
-		p.translate(0, -y);
+		view->draw(p, drawContext);
+		p.restore();
 
 		if (displayUserpic) {
 			const auto picX = st::msgMargin.left();
@@ -424,7 +422,7 @@ QImage Make(not_null<QWidget*> box, const ShotConfig &config) {
 					picY,
 					width,
 					st::msgPhotoSize,
-					context.paused);
+					drawContext.paused);
 			} else if (const auto info = message->displayHiddenSenderInfo()) {
 				if (info->customUserpic.empty()) {
 					info->emptyUserpic.paintCircle(

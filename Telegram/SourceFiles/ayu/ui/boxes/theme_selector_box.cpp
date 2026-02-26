@@ -8,6 +8,7 @@
 
 #include "lang_auto.h"
 #include "ayu/features/message_shot/message_shot.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
 #include "data/data_file_origin.h"
@@ -45,7 +46,12 @@ void ThemeSelectorBox::prepare() {
 void ThemeSelectorBox::setupContent() {
 	using namespace Settings;
 
-	setTitle(tr::ayu_MessageShotThemeSelectTitle());
+	const auto mapAyu = [](const char *key, rpl::producer<QString> text) {
+		return std::move(text) | rpl::map([=](QString s) {
+			return AyuHantHelper(QString::fromLatin1(key), s);
+		});
+	};
+	setTitle(rpl::single(AyuHantHelper(qsl("ayu_MessageShotThemeSelectTitle"), tr::ayu_MessageShotThemeSelectTitle(tr::now))));
 
 	auto wrap2 = object_ptr<Ui::VerticalLayout>(this);
 	const auto container = wrap2.data();
@@ -168,12 +174,12 @@ void ThemeSelectorBox::setupContent() {
 	AyuFeatures::MessageShot::paletteChosen(
 	) | rpl::on_next([=](const auto &palette)
 							 {
-								 _themeNames.fire(tr::ayu_MessageShotThemeDefault(tr::now));
+								 _themeNames.fire(AyuHantHelper(qsl("ayu_MessageShotThemeDefault"), tr::ayu_MessageShotThemeDefault(tr::now)));
 								 _selectedPalette = palette;
 							 },
 							 lifetime());
 
-	addButton(tr::ayu_MessageShotThemeApply(),
+	addButton(mapAyu("ayu_MessageShotThemeApply", tr::ayu_MessageShotThemeApply()),
 			  [=]
 			  {
 				  _palettes.fire(std::move(_selectedPalette));

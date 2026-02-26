@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+﻿// This is the source code of AyuGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -27,6 +27,7 @@
 #include "ui/widgets/popup_menu.h"
 #include "ayu/ui/settings/ayu_hant_helper.h"
 #include <QtGui/QClipboard>
+#include <QtCore/QDateTime>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
@@ -47,6 +48,7 @@
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_element.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/boxes/choose_date_time.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "api/api_sending.h"
@@ -62,7 +64,10 @@ bool needToShowItem(int state) {
 namespace {
 
 
-void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
+void DeleteMyMessagesAfterConfirm(
+		not_null<PeerData*> peer,
+		int minDate,
+		int maxDate) {
 	const auto session = &peer->session();
 
 	auto collected = std::make_shared<std::vector<MsgId>>();
@@ -135,9 +140,9 @@ void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 			MTP_int(0),
 			// top_msg_id
 			MTP_inputMessagesFilterEmpty(),
-			MTP_int(0),
+			MTP_int(minDate),
 			// min_date
-			MTP_int(0),
+			MTP_int(maxDate),
 			// max_date
 			MTP_int(from.bare),
 			MTP_int(0),
@@ -179,25 +184,62 @@ void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controller, not_null<PeerData*> peer) {
 	return [=]
 	{
-		if (!controller->showFrozenError()) {
-			controller->show(Ui::MakeConfirmBox({
-				.text = tr::ayu_DeleteOwnMessagesConfirmation(tr::now),
-				.confirmed =
-				[=](Fn<void()> &&close)
-				{
-					DeleteMyMessagesAfterConfirm(peer);
-					close();
-				},
-				.confirmText = tr::lng_box_delete(),
-				.cancelText = tr::lng_cancel(),
-				.confirmStyle = &st::attentionBoxButton,
-			}));
+		if (controller->showFrozenError()) {
+			return;
 		}
+
+		const auto minStart = [] {
+			return base::unixtime::serialize(
+				QDateTime(QDate(2013, 8, 1), QTime(0, 0), Qt::UTC));
+		};
+		const auto maxNow = [] {
+			return base::unixtime::now();
+		};
+
+		const auto showEnd = [=](TimeId start) {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				Ui::ChooseDateTimeBoxArgs args;
+				args.title = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesEndTitle"),
+					QString("End time")));
+				args.submit = tr::lng_box_delete();
+				args.done = [=](TimeId end) {
+					const auto finalEnd = std::max(end, start);
+					DeleteMyMessagesAfterConfirm(peer, start, finalEnd);
+					box->closeBox();
+				};
+				args.min = [=] { return start; };
+				args.time = start;
+				args.max = maxNow;
+				args.description = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesEndDesc"),
+					QString("Select the end date and time.")));
+				Ui::ChooseDateTimeBox(box, std::move(args));
+			}));
+		};
+
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			Ui::ChooseDateTimeBoxArgs args;
+			args.title = rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteOwnMessagesStartTitle"),
+				QString("Start time")));
+			args.submit = tr::lng_continue();
+			args.done = [=](TimeId start) {
+				showEnd(start);
+				box->closeBox();
+			};
+			args.min = minStart;
+			args.time = maxNow();
+			args.max = maxNow;
+			args.description = rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteOwnMessagesStartDesc"),
+				QString("Select the start date and time.")));
+			Ui::ChooseDateTimeBox(box, std::move(args));
+		}));
 	};
 }
 
 }
-
 
 void AddDeletedMessagesActions(PeerData *peerData,
 							   Data::Thread *thread,
@@ -211,7 +253,9 @@ void AddDeletedMessagesActions(PeerData *peerData,
 	const auto topicId = topic ? topic->rootId().bare : 0;
 
 	addCallback(
-		tr::ayu_ViewDeletedMenuText(tr::now),
+		AyuHantHelper(
+			qsl("ayu_ViewDeletedMenuText"),
+			tr::ayu_ViewDeletedMenuText(tr::now)),
 		[=]
 		{
 			sessionController->session().tryResolveWindow()
@@ -274,7 +318,9 @@ void AddJumpToBeginningAction(PeerData *peerData,
 	};
 
 	addCallback(
-		tr::ayu_JumpToBeginning(tr::now),
+		AyuHantHelper(
+			qsl("ayu_JumpToBeginning"),
+			tr::ayu_JumpToBeginning(tr::now)),
 		[=]
 		{
 			if (user) {
@@ -369,18 +415,20 @@ void AddDeleteOwnMessagesAction(PeerData *peerData,
 		return;
 	}
 	if (const auto chat = peerData->asChat()) {
-		if (!chat->amIn() || chat->amCreator() || chat->hasAdminRights()) {
+		if (!chat->amIn()) {
 			return;
 		}
 	} else if (const auto channel = peerData->asChannel()) {
-		if (!channel->isMegagroup() || !channel->amIn() || channel->amCreator() || channel->hasAdminRights()) {
+		if (!channel->isMegagroup() || !channel->amIn()) {
 			return;
 		}
 	} else {
 		return;
 	}
 	addCallback(
-		tr::ayu_DeleteOwnMessages(tr::now),
+		AyuHantHelper(
+			qsl("ayu_DeleteOwnMessages"),
+			tr::ayu_DeleteOwnMessages(tr::now)),
 		DeleteMyMessagesHandler(sessionController, peerData),
 		&st::menuIconTTL);
 }
@@ -937,4 +985,5 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 }
 
 } // namespace AyuUi
+
 

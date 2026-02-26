@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+﻿// This is the source code of AyuGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -284,7 +284,7 @@ AyuGramSettings::AyuGramSettings() {
 	simpleQuotesAndReplies = false;
 	hideFastShare = false;
 	replaceBottomInfoWithIcons = true;
-	deletedMark = "🧹";
+	deletedMark = "?完";
 	editedMark = Core::IsAppLaunched() ? tr::lng_edited(tr::now) : QString("edited");
 	recentStickersCount = 100;
 
@@ -349,6 +349,8 @@ AyuGramSettings::AyuGramSettings() {
 	showMessageSeconds = false;
 	showMessageShot = true;
 	showViewJson = false;
+	alwaysShowSpoilerText = false;
+	alwaysShowSpoilerMedia = false;
 
 	// ~ Confirmations
 	stickerConfirmation = false;
@@ -715,6 +717,14 @@ void set_showViewJson(bool val) {
 	settings->showViewJson = val;
 }
 
+void set_alwaysShowSpoilerText(bool val) {
+	settings->alwaysShowSpoilerText = val;
+}
+
+void set_alwaysShowSpoilerMedia(bool val) {
+	settings->alwaysShowSpoilerMedia = val;
+}
+
 void set_stickerConfirmation(bool val) {
 	settings->stickerConfirmation = val;
 }
@@ -822,3 +832,4 @@ rpl::producer<> get_historyUpdateReactive() {
 }
 
 }
+

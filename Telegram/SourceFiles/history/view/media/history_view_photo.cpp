@@ -47,6 +47,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGran includes
 #include "ayu/features/message_shot/message_shot.h"
+#include "ayu/ayu_settings.h"
 
 
 namespace HistoryView {
@@ -308,6 +309,17 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		}
 	}
 	const auto radial = isRadialAnimation();
+	const auto drawSpoilerOutline = [&](const QRect &rect) {
+		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
+			return;
+		}
+		auto hq = PainterHighQualityEnabler(p);
+		auto pen = QPen(QColor(95, 193, 255, 220));
+		pen.setWidth(2);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		p.drawRect(rect.adjusted(1, 1, -1, -1));
+	};
 
 	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	if (_serviceWidth > 0) {
@@ -395,6 +407,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		p.drawRoundedRect(rect, radius, radius);
 		sti->historyPageEnlarge.paintInCenter(p, rect);
 	}
+	drawSpoilerOutline(rthumb);
 	if (_purchasedPriceTag) {
 		auto geometry = rthumb;
 		if (showEnlarge) {
@@ -747,6 +760,17 @@ void Photo::drawGrouped(
 		}
 	}
 	const auto radial = isRadialAnimation();
+	const auto drawSpoilerOutline = [&](const QRect &rect) {
+		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
+			return;
+		}
+		auto hq = PainterHighQualityEnabler(p);
+		auto pen = QPen(QColor(95, 193, 255, 220));
+		pen.setWidth(2);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		p.drawRect(rect.adjusted(1, 1, -1, -1));
+	};
 
 	const auto revealed = _spoiler
 		? _spoiler->revealAnimation.value(_spoiler->revealed ? 1. : 0.)
@@ -833,6 +857,7 @@ void Photo::drawGrouped(
 			_animation->radial.draw(p, rinner, line, sti->historyFileThumbRadialFg);
 		}
 	}
+	drawSpoilerOutline(geometry);
 }
 
 TextState Photo::getStateGrouped(
@@ -1117,3 +1142,10 @@ void Photo::showPhoto(FullMsgId id) {
 }
 
 } // namespace HistoryView
+
+
+
+
+
+
+
