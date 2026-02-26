@@ -1,4 +1,4 @@
-/*
+﻿/*
 This file is part of Telegram Desktop,
 the official desktop application for the Telegram messaging service.
 
@@ -79,6 +79,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/admin_log/history_admin_log_section.h"
 #include "styles/style_ayu_styles.h"
 #include "styles/style_ayu_icons.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 
 
 namespace HistoryView {
@@ -130,7 +131,9 @@ TopBarWidget::TopBarWidget(
 , _forward(this, tr::lng_selected_forward(), st::defaultActiveButton)
 , _sendNow(this, tr::lng_selected_send_now(), st::defaultActiveButton)
 , _delete(this, tr::lng_selected_delete(), st::defaultActiveButton)
-, _messageShot(this, tr::ayu_MessageShotTopBarText(), st::defaultActiveButton)
+, _messageShot(this, tr::ayu_MessageShotTopBarText() | rpl::map([](QString s) {
+        return AyuHantHelper(qsl("ayu_MessageShotTopBarText"), s);
+    }), st::defaultActiveButton)
 , _back(this, st::historyTopBarBack)
 , _cancelChoose(this, st::topBarCloseChoose)
 , _call(this, st::topBarCall)
@@ -1966,3 +1969,5 @@ void TopBarWidget::updateOnlineDisplayIn(crl::time timeout) {
 }
 
 } // namespace HistoryView
+
+

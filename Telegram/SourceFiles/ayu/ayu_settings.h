@@ -1,4 +1,4 @@
-// This is the source code of AyuGram for Desktop.
+﻿// This is the source code of AyuGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -149,6 +149,8 @@ public:
 	bool showMessageSeconds;
 	bool showMessageShot;
 	bool showViewJson;
+	bool alwaysShowSpoilerText;
+	bool alwaysShowSpoilerMedia;
 
 	bool stickerConfirmation;
 	bool gifConfirmation;
@@ -267,6 +269,8 @@ void set_showMessageId(bool val);
 void set_showMessageSeconds(bool val);
 void set_showMessageShot(bool val);
 void set_showViewJson(bool val);
+void set_alwaysShowSpoilerText(bool val);
+void set_alwaysShowSpoilerMedia(bool val);
 
 void set_stickerConfirmation(bool val);
 void set_gifConfirmation(bool val);
@@ -365,6 +369,8 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(showMessageSeconds)
 	NLOHMANN_JSON_TO(showMessageShot)
 	NLOHMANN_JSON_TO(showViewJson)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerText)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerMedia)
 	NLOHMANN_JSON_TO(stickerConfirmation)
 	NLOHMANN_JSON_TO(gifConfirmation)
 	NLOHMANN_JSON_TO(voiceConfirmation)
@@ -459,6 +465,8 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showMessageSeconds)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showMessageShot)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showViewJson)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerText)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerMedia)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(stickerConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(gifConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(voiceConfirmation)
@@ -494,4 +502,5 @@ void triggerHistoryUpdate();
 rpl::producer<> get_historyUpdateReactive();
 
 }
+
 

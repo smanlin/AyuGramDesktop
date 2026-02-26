@@ -17,11 +17,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
 #include "base/weak_ptr.h"
+#include "ayu/ayu_settings.h"
 
 namespace HistoryView {
 
 void InitElementTextPart(not_null<Element*> view, Ui::Text::String &text) {
 	if (text.hasSpoilers()) {
+		const auto &settings = AyuSettings::getInstance();
+		text.setSpoilerRevealed(settings.alwaysShowSpoilerText, anim::type::instant);
 		text.setSpoilerLinkFilter([weak = base::make_weak(view)](
 				const ClickContext &context) {
 			const auto button = context.button;
@@ -69,3 +72,6 @@ void InitElementTextPart(not_null<Element*> view, Ui::Text::String &text) {
 }
 
 } // namespace HistoryView
+
+
+

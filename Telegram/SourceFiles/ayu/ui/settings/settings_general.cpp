@@ -283,6 +283,50 @@ void SetupQoLToggles(not_null<Ui::VerticalLayout*> container, not_null<Window::S
 		},
 		container->lifetime());
 
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_AlwaysShowSpoilerText"),
+			qsl("\u59cb\u7d42\u986f\u793a\u9632\u5287\u900f\uff08\u6587\u5b57\uff09"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->alwaysShowSpoilerText)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled)
+		{
+			return (enabled != settings->alwaysShowSpoilerText);
+		}) | on_next(
+		[=](bool enabled)
+		{
+			AyuSettings::set_alwaysShowSpoilerText(enabled);
+			AyuSettings::save();
+			AyuSettings::triggerHistoryUpdate();
+		},
+		container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_AlwaysShowSpoilerMedia"),
+			qsl("\u59cb\u7d42\u986f\u793a\u9632\u5287\u900f\uff08\u591a\u5a92\u9ad4\uff09"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->alwaysShowSpoilerMedia)
+	)->toggledValue(
+	) | rpl::filter(
+		[=](bool enabled)
+		{
+			return (enabled != settings->alwaysShowSpoilerMedia);
+		}) | on_next(
+		[=](bool enabled)
+		{
+			AyuSettings::set_alwaysShowSpoilerMedia(enabled);
+			AyuSettings::save();
+			AyuSettings::triggerHistoryUpdate();
+		},
+		container->lifetime());
+
 	SetupShowPeerId(container, controller);
 
 	AddSkip(container);
@@ -405,3 +449,9 @@ void AyuGeneral::setupContent(not_null<Window::SessionController*> controller) {
 }
 
 } // namespace Settings// force rebuild 
+
+
+
+
+
+

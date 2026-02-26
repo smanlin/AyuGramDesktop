@@ -45,9 +45,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
-// AyuGram includes
+// AyuGran includes
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/ui/ayu_userpic.h"
+#include "ayu/ayu_settings.h"
 
 
 namespace HistoryView {
@@ -309,6 +309,17 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		}
 	}
 	const auto radial = isRadialAnimation();
+	const auto drawSpoilerOutline = [&](const QRect &rect) {
+		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
+			return;
+		}
+		auto hq = PainterHighQualityEnabler(p);
+		auto pen = QPen(QColor(95, 193, 255, 220));
+		pen.setWidth(2);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		p.drawRect(rect.adjusted(1, 1, -1, -1));
+	};
 
 	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	if (_serviceWidth > 0) {
@@ -360,7 +371,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 			p.setBrush(over ? st->msgDateImgBgOver() : st->msgDateImgBg());
 		}
 	}
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter) {
 		const auto radialOpacity = (radial && loaded && !_data->uploading())
 			? _animation->radial.opacity() :
 			1.;
@@ -396,6 +407,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		p.drawRoundedRect(rect, radius, radius);
 		sti->historyPageEnlarge.paintInCenter(p, rect);
 	}
+	drawSpoilerOutline(rthumb);
 	if (_purchasedPriceTag) {
 		auto geometry = rthumb;
 		if (showEnlarge) {
@@ -472,18 +484,13 @@ void Photo::validateUserpicImageCache(QSize size, bool forum) const {
 		args = args.blurred();
 	}
 	original = Images::Prepare(std::move(original), size * ratio, args);
-	const auto shape = forumValue
-		? Ui::PeerUserpicShape::Forum
-		: Ui::PeerUserpicShape::Circle;
-	if (AyuUserpic::ShouldOverrideShape(shape)) {
-		original = Images::Round(
-			std::move(original),
-			ImageRoundRadius::AyuUserpic);
-	} else {
+	if (forumValue) {
 		original = Images::Round(
 			std::move(original),
 			Images::CornersMask(std::min(size.width(), size.height())
 				* Ui::ForumUserpicRadiusMultiplier()));
+	} else {
+		original = Images::Circle(std::move(original));
 	}
 	_imageCache = std::move(original);
 	_imageCacheForum = forumValue;
@@ -571,16 +578,7 @@ void Photo::paintUserpicFrame(
 		const auto ratio = style::DevicePixelRatio();
 		auto request = ::Media::Streaming::FrameRequest();
 		request.outer = request.resize = size * ratio;
-		const auto shape = forum
-			? Ui::PeerUserpicShape::Forum
-			: Ui::PeerUserpicShape::Circle;
-		if (AyuUserpic::ShouldOverrideShape(shape)) {
-			AyuUserpic::ApplyFrameRounding(
-				request,
-				_streamed->roundingCorners,
-				_streamed->roundingMask,
-				size);
-		} else if (forum) {
+		if (forum) {
 			const auto radius = int(std::min(size.width(), size.height())
 				* Ui::ForumUserpicRadiusMultiplier());
 			if (_streamed->roundingCorners[0].width() != radius * ratio) {
@@ -762,6 +760,17 @@ void Photo::drawGrouped(
 		}
 	}
 	const auto radial = isRadialAnimation();
+	const auto drawSpoilerOutline = [&](const QRect &rect) {
+		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
+			return;
+		}
+		auto hq = PainterHighQualityEnabler(p);
+		auto pen = QPen(QColor(95, 193, 255, 220));
+		pen.setWidth(2);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		p.drawRect(rect.adjusted(1, 1, -1, -1));
+	};
 
 	const auto revealed = _spoiler
 		? _spoiler->revealAnimation.value(_spoiler->revealed ? 1. : 0.)
@@ -796,7 +805,7 @@ void Photo::drawGrouped(
 		&& (radial
 			|| (!loaded && !_data->loading())
 			|| _data->waitingForAlbum());
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter) {
 		const auto radialOpacity = radial
 			? _animation->radial.opacity()
 			: 1.;
@@ -848,6 +857,7 @@ void Photo::drawGrouped(
 			_animation->radial.draw(p, rinner, line, sti->historyFileThumbRadialFg);
 		}
 	}
+	drawSpoilerOutline(geometry);
 }
 
 TextState Photo::getStateGrouped(
@@ -1132,3 +1142,10 @@ void Photo::showPhoto(FullMsgId id) {
 }
 
 } // namespace HistoryView
+
+
+
+
+
+
+
