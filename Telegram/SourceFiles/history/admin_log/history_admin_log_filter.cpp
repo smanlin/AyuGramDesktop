@@ -14,7 +14,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace AdminLog {
 
-EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel) {
+EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
+		bool isChannel,
+		bool isForum) {
 	using Label = EditFlagsLabel<FilterValue::Flags>;
 	using Flag = FilterValue::Flag;
 
@@ -32,12 +34,18 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel) {
 		? tr::lng_admin_log_filter_subscribers_removed
 		: tr::lng_admin_log_filter_members_removed)(tr::now);
 
-	auto members = std::vector<Label>{
-		{ adminRights, tr::lng_admin_log_filter_admins_new(tr::now) },
-		{ restrictions, tr::lng_admin_log_filter_restrictions(tr::now) },
-		{ membersNew, std::move(membersNewText) },
-		{ membersRemoved, std::move(membersRemovedText) },
-	};
+		auto members = std::vector<Label>{
+			{ adminRights, tr::lng_admin_log_filter_admins_new(tr::now) },
+			{ restrictions, tr::lng_admin_log_filter_restrictions(tr::now) },
+			{ membersNew, std::move(membersNewText) },
+			{ membersRemoved, std::move(membersRemovedText) },
+		};
+		if (!isChannel && !isForum) {
+			members.push_back({
+				Flag::Topics,
+				tr::lng_admin_log_filter_members_tag_updates(tr::now),
+			});
+		}
 
 	const auto info = Flag::Info | Flag::Settings;
 	const auto invites = Flag::Invites;
@@ -61,7 +69,7 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel) {
 			tr::lng_admin_log_filter_sub_extend(tr::now),
 		},
 	};
-	if (!isChannel) {
+	if (!isChannel && isForum) {
 		settings.push_back({
 			Flag::Topics,
 			tr::lng_admin_log_filter_topics(tr::now),
@@ -103,11 +111,13 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel) {
 Fn<FilterValue::Flags()> FillFilterValueList(
 		not_null<Ui::VerticalLayout*> container,
 		bool isChannel,
+		bool isForum,
 		const FilterValue &filter) {
 	auto [checkboxes, getResult, changes] = CreateEditAdminLogFilter(
 		container,
 		filter.flags ? (*filter.flags) : ~FilterValue::Flags(0),
-		isChannel);
+		isChannel,
+		isForum);
 	container->add(std::move(checkboxes));
 	return getResult;
 }

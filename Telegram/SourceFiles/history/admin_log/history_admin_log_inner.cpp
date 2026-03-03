@@ -519,10 +519,11 @@ void InnerWidget::showFilter(Fn<void(FilterValue &&filter)> callback) {
 		Ui::AddSubsectionTitle(
 			box->verticalLayout(),
 			tr::lng_admin_log_filter_actions_type_subtitle());
-		const auto collectFlags = FillFilterValueList(
-			box->verticalLayout(),
-			isChannel,
-			filter);
+			const auto collectFlags = FillFilterValueList(
+				box->verticalLayout(),
+				isChannel,
+				_channel->isForum(),
+				filter);
 		Ui::AddSkip(box->verticalLayout());
 		Ui::AddDivider(box->verticalLayout());
 		Ui::AddSkip(box->verticalLayout());

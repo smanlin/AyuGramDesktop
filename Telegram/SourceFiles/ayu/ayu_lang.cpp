@@ -209,5 +209,25 @@ void AyuLanguage::applyLanguageJson(QJsonDocument doc) {
 		Lang::GetInstance().resetValue(key.toUtf8());
 		Lang::GetInstance().applyValue(key.toUtf8(), val.toUtf8());
 	}
+
+	// Keep newly added permission detail labels translated in Traditional Chinese
+	// even before upstream language packs include these keys.
+	const auto lang = Lang::GetInstance().id().toLower();
+	if (lang.contains(qsl("hant"))
+		|| lang.contains(qsl("tw"))
+		|| lang.contains(qsl("hk"))) {
+		const auto apply = [](QByteArray key, QByteArray value) {
+			Lang::GetInstance().resetValue(key);
+			Lang::GetInstance().applyValue(key, value);
+		};
+		apply("lng_admin_log_banned_send_stickers2", "傳送貼圖");
+		apply("lng_admin_log_banned_send_gifs", "傳送 GIFs");
+		apply("lng_admin_log_banned_use_inline", "使用內嵌式機器人");
+		apply("lng_admin_log_banned_send_games", "傳送遊戲");
+		apply("lng_rights_chat_send_stickers2", "傳送貼圖");
+		apply("lng_rights_group_edit_own_tags", "編輯自己的標籤");
+		apply("lng_admin_log_banned_member_tags_updates", "成員標籤更新");
+		apply("lng_admin_log_filter_members_tag_updates", "成員標籤更新");
+	}
 	Lang::GetInstance().updatePluralRules();
 }

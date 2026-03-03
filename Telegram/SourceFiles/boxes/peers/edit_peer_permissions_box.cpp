@@ -85,27 +85,21 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
 		{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
 		{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
-		{ Flag::SendStickers
-			| Flag::SendGifs
-			| Flag::SendGames
-			| Flag::SendInline, tr::lng_rights_chat_stickers(tr::now) },
+		{ Flag::SendStickers, tr::lng_admin_log_banned_send_stickers2(tr::now) },
+		{ Flag::SendGifs, tr::lng_admin_log_banned_send_gifs(tr::now) },
+		{ Flag::SendInline, tr::lng_admin_log_banned_use_inline(tr::now) },
+		{ Flag::SendGames, tr::lng_admin_log_banned_send_games(tr::now) },
 		{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
 		{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
 	};
 	auto second = std::vector<RestrictionLabel>{
 		{ Flag::AddParticipants, tr::lng_rights_chat_add_members(tr::now) },
-		{ Flag::CreateTopics, tr::lng_rights_group_add_topics(tr::now) },
 		{ Flag::PinMessages, tr::lng_rights_group_pin(tr::now) },
+		{ Flag::CreateTopics, options.isForum
+			? tr::lng_rights_group_add_topics(tr::now)
+			: tr::lng_rights_group_edit_own_tags(tr::now) },
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
-	if (!options.isForum) {
-		second.erase(
-			ranges::remove(
-				second,
-				Flag::CreateTopics | Flag(),
-				&RestrictionLabel::flags),
-			end(second));
-	}
 	return {
 		{ std::nullopt, std::move(first) },
 		{ tr::lng_rights_chat_send_media(), std::move(media) },
@@ -262,18 +256,6 @@ auto Dependencies(ChatRestrictions)
 	using Flag = ChatRestriction;
 
 	return {
-		// stickers <-> gifs
-		{ Flag::SendGifs, Flag::SendStickers },
-		{ Flag::SendStickers, Flag::SendGifs },
-
-		// stickers <-> games
-		{ Flag::SendGames, Flag::SendStickers },
-		{ Flag::SendStickers, Flag::SendGames },
-
-		// stickers <-> inline
-		{ Flag::SendInline, Flag::SendStickers },
-		{ Flag::SendStickers, Flag::SendInline },
-
 		// embed_links -> send_plain
 		{ Flag::EmbedLinks, Flag::SendOther },
 
@@ -1451,11 +1433,11 @@ ChatRestrictions FixDependentRestrictions(ChatRestrictions restrictions) {
 
 	// Fix iOS bug of saving send_inline like embed_links.
 	// We copy send_stickers to send_inline.
-	if (restrictions & ChatRestriction::SendStickers) {
-		restrictions |= ChatRestriction::SendInline;
-	} else {
-		restrictions &= ~ChatRestriction::SendInline;
-	}
+	//if (restrictions & ChatRestriction::SendStickers) {
+	//	restrictions |= ChatRestriction::SendInline;
+	//} else {
+	//	restrictions &= ~ChatRestriction::SendInline;
+	//}
 
 	// Apply the strictest.
 	const auto fixOne = [&] {
@@ -1502,9 +1484,10 @@ EditFlagsControl<PowerSaving::Flags> CreateEditPowerSaving(
 EditFlagsControl<AdminLog::FilterValue::Flags> CreateEditAdminLogFilter(
 		QWidget *parent,
 		AdminLog::FilterValue::Flags flags,
-		bool isChannel) {
+		bool isChannel,
+		bool isForum) {
 	auto widget = object_ptr<Ui::VerticalLayout>(parent);
-	auto descriptor = AdminLog::FilterValueLabels(isChannel);
+	auto descriptor = AdminLog::FilterValueLabels(isChannel, isForum);
 	auto result = CreateEditFlags(
 		widget.data(),
 		flags,
