@@ -42,7 +42,7 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
 		};
 		if (!isChannel && !isForum) {
 			members.push_back({
-				Flag::Topics,
+				Flag::MemberTags,
 				tr::lng_admin_log_filter_members_tag_updates(tr::now),
 			});
 		}

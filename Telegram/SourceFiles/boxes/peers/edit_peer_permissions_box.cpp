@@ -95,11 +95,14 @@ constexpr auto kDefaultChargeStars = 10;
 	auto second = std::vector<RestrictionLabel>{
 		{ Flag::AddParticipants, tr::lng_rights_chat_add_members(tr::now) },
 		{ Flag::PinMessages, tr::lng_rights_group_pin(tr::now) },
-		{ Flag::CreateTopics, options.isForum
-			? tr::lng_rights_group_add_topics(tr::now)
-			: tr::lng_rights_group_edit_own_tags(tr::now) },
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
+	second.push_back({
+		options.isForum ? Flag::CreateTopics : Flag::EditOwnTags,
+		options.isForum
+			? tr::lng_rights_group_add_topics(tr::now)
+			: tr::lng_rights_group_edit_own_tags(tr::now),
+	});
 	return {
 		{ std::nullopt, std::move(first) },
 		{ tr::lng_rights_chat_send_media(), std::move(media) },
@@ -285,6 +288,7 @@ ChatRestrictions NegateRestrictions(ChatRestrictions value) {
 		| Flag::EmbedLinks
 		| Flag::AddParticipants
 		| Flag::CreateTopics
+		| Flag::EditOwnTags
 		| Flag::PinMessages
 		| Flag::SendGames
 		| Flag::SendGifs
@@ -325,10 +329,11 @@ ChatRestrictions DisabledByAdminRights(not_null<PeerData*> peer) {
 		}
 		Unexpected("User in DisabledByAdminRights.");
 	}();
+	const auto isForum = peer->isForum();
 	return Flag(0)
-		| ((adminRights & Admin::ManageTopics)
-			? Flag(0)
-			: Flag::CreateTopics)
+		| ((isForum && !(adminRights & Admin::ManageTopics))
+			? Flag::CreateTopics
+			: Flag(0))
 		| ((adminRights & Admin::PinMessages)
 			? Flag(0)
 			: Flag::PinMessages)
