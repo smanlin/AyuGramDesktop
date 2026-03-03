@@ -98,7 +98,7 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
 	second.push_back({
-		Flag::CreateTopics,
+		options.isForum ? Flag::CreateTopics : Flag::EditOwnTags,
 		options.isForum
 			? tr::lng_rights_group_add_topics(tr::now)
 			: tr::lng_rights_group_edit_own_tags(tr::now),
@@ -1518,5 +1518,4 @@ EditFlagsControl<Data::ChatbotsPermissions> CreateEditChatbotPermissions(
 
 	return result;
 }
-
 

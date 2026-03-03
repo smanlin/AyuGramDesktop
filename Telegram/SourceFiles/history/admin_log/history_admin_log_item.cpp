@@ -309,8 +309,7 @@ TextWithEntities GenerateAdminChangeText(
 
 QString GeneratePermissionsChangeText(
 		ChatRestrictionsInfo newRights,
-		ChatRestrictionsInfo prevRights,
-		bool isForum) {
+		ChatRestrictionsInfo prevRights) {
 	using Flag = ChatRestriction;
 	using Flags = ChatRestrictions;
 
@@ -335,13 +334,8 @@ QString GeneratePermissionsChangeText(
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },
-		{
-			Flag::CreateTopics,
-			isForum
-				? tr::lng_admin_log_admin_create_topics
-				: tr::lng_rights_group_edit_own_tags
-		},
-		{ Flag::EditOwnTags, tr::lng_rights_group_edit_own_tags },
+		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics },
+		{ Flag::EditOwnTags, tr::lng_admin_log_banned_member_tags_updates },
 		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
 	};
 	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
@@ -470,8 +464,7 @@ TextWithEntities GeneratePermissionsChangeText(
 		PeerId participantId,
 		const TextWithEntities &user,
 		ChatRestrictionsInfo newRights,
-		ChatRestrictionsInfo prevRights,
-		bool isForum) {
+		ChatRestrictionsInfo prevRights) {
 	using Flag = ChatRestriction;
 
 	const auto newFlags = newRights.flags;
@@ -508,8 +501,7 @@ TextWithEntities GeneratePermissionsChangeText(
 		tr::marked);
 	const auto changes = GeneratePermissionsChangeText(
 		newRights,
-		prevRights,
-		isForum);
+		prevRights);
 	if (!changes.isEmpty()) {
 		result.text.append('\n' + changes);
 	}
@@ -726,8 +718,7 @@ auto GenerateParticipantChangeText(
 				participantId,
 				user,
 				ChatRestrictionsInfo(),
-				oldRestrictions,
-				channel->isForum());
+				oldRestrictions);
 		} else if (oldParticipant
 				&& oldParticipant->type() == Type::Restricted
 				&& (participant.type() == Type::Member
@@ -736,8 +727,7 @@ auto GenerateParticipantChangeText(
 				participantId,
 				user,
 				ChatRestrictionsInfo(),
-				oldRestrictions,
-				channel->isForum());
+				oldRestrictions);
 		}
 		return tr::lng_admin_log_invited(
 			tr::now,
@@ -786,8 +776,7 @@ auto GenerateParticipantChangeText(
 					peerId,
 					user,
 					participant.restrictions(),
-					oldRestrictions,
-					channel->isForum());
+					oldRestrictions);
 			}
 		case Api::ChatParticipant::Type::Left:
 		case Api::ChatParticipant::Type::Member:
@@ -846,8 +835,7 @@ TextWithEntities GenerateDefaultBannedRightsChangeText(
 	};
 	const auto changes = GeneratePermissionsChangeText(
 		rights,
-		oldRights,
-		channel->isForum());
+		oldRights);
 	if (!changes.isEmpty()) {
 		result.text.append('\n' + changes);
 	}
