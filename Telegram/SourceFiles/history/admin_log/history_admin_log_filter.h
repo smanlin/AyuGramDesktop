@@ -24,8 +24,11 @@ struct FilterValue;
 [[nodiscard]] Fn<FilterValue::Flags()> FillFilterValueList(
 	not_null<Ui::VerticalLayout*> container,
 	bool isChannel,
+	bool isForum,
 	const FilterValue &filter);
 
-EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel);
+EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
+	bool isChannel,
+	bool isForum);
 
 } // namespace AdminLog
