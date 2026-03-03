@@ -52,9 +52,6 @@ namespace {
 			| (data.is_delete_stories() ? Flag::DeleteStories : Flag())
 			| (data.is_manage_direct_messages()
 				? Flag::ManageDirect
-				: Flag())
-			| (data.is_manage_ranks()
-				? Flag::ManageRanks
 				: Flag());
 	});
 }
@@ -71,17 +68,17 @@ namespace {
 			| (data.is_send_polls() ? Flag::SendPolls : Flag())
 			| (data.is_send_photos() ? Flag::SendPhotos : Flag())
 			| (data.is_send_videos() ? Flag::SendVideos : Flag())
-			| (data.is_send_roundvideos() ? Flag::SendVideoMessages : Flag())
-			| (data.is_send_audios() ? Flag::SendMusic : Flag())
-			| (data.is_send_voices() ? Flag::SendVoiceMessages : Flag())
-			| (data.is_send_docs() ? Flag::SendFiles : Flag())
-			| (data.is_send_plain() ? Flag::SendOther : Flag())
-			| (data.is_embed_links() ? Flag::EmbedLinks : Flag())
-			| (data.is_change_info() ? Flag::ChangeInfo : Flag())
-			| (data.is_invite_users() ? Flag::AddParticipants : Flag())
-			| (data.is_pin_messages() ? Flag::PinMessages : Flag())
-			| (data.is_manage_topics() ? Flag::CreateTopics : Flag())
-			| (data.is_edit_rank() ? Flag::EditRank : Flag());
+				| (data.is_send_roundvideos() ? Flag::SendVideoMessages : Flag())
+				| (data.is_send_audios() ? Flag::SendMusic : Flag())
+				| (data.is_send_voices() ? Flag::SendVoiceMessages : Flag())
+				| (data.is_send_docs() ? Flag::SendFiles : Flag())
+				| (data.is_send_plain() ? Flag::SendOther : Flag())
+				| (data.is_member_tags() ? Flag::EditOwnTags : Flag())
+				| (data.is_embed_links() ? Flag::EmbedLinks : Flag())
+				| (data.is_change_info() ? Flag::ChangeInfo : Flag())
+				| (data.is_invite_users() ? Flag::AddParticipants : Flag())
+				| (data.is_pin_messages() ? Flag::PinMessages : Flag())
+				| (data.is_manage_topics() ? Flag::CreateTopics : Flag());
 	});
 }
 
@@ -120,9 +117,6 @@ MTPChatAdminRights AdminRightsToMTP(ChatAdminRightsInfo info) {
 		| ((flags & R::DeleteStories) ? Flag::f_delete_stories : Flag())
 		| ((flags & R::ManageDirect)
 			? Flag::f_manage_direct_messages
-			: Flag())
-		| ((flags & R::ManageRanks)
-			? Flag::f_manage_ranks
 			: Flag())));
 }
 
@@ -145,17 +139,17 @@ MTPChatBannedRights RestrictionsToMTP(ChatRestrictionsInfo info) {
 			| ((flags & R::SendPolls) ? Flag::f_send_polls : Flag())
 			| ((flags & R::SendPhotos) ? Flag::f_send_photos : Flag())
 			| ((flags & R::SendVideos) ? Flag::f_send_videos : Flag())
-			| ((flags & R::SendVideoMessages) ? Flag::f_send_roundvideos : Flag())
-			| ((flags & R::SendMusic) ? Flag::f_send_audios : Flag())
-			| ((flags & R::SendVoiceMessages) ? Flag::f_send_voices : Flag())
-			| ((flags & R::SendFiles) ? Flag::f_send_docs : Flag())
-			| ((flags & R::SendOther) ? Flag::f_send_plain : Flag())
-			| ((flags & R::EmbedLinks) ? Flag::f_embed_links : Flag())
-			| ((flags & R::ChangeInfo) ? Flag::f_change_info : Flag())
-			| ((flags & R::AddParticipants) ? Flag::f_invite_users : Flag())
+				| ((flags & R::SendVideoMessages) ? Flag::f_send_roundvideos : Flag())
+				| ((flags & R::SendMusic) ? Flag::f_send_audios : Flag())
+				| ((flags & R::SendVoiceMessages) ? Flag::f_send_voices : Flag())
+				| ((flags & R::SendFiles) ? Flag::f_send_docs : Flag())
+				| ((flags & R::SendOther) ? Flag::f_send_plain : Flag())
+				| ((flags & R::EditOwnTags) ? Flag::f_member_tags : Flag())
+				| ((flags & R::EmbedLinks) ? Flag::f_embed_links : Flag())
+				| ((flags & R::ChangeInfo) ? Flag::f_change_info : Flag())
+				| ((flags & R::AddParticipants) ? Flag::f_invite_users : Flag())
 			| ((flags & R::PinMessages) ? Flag::f_pin_messages : Flag())
-			| ((flags & R::CreateTopics) ? Flag::f_manage_topics : Flag())
-			| ((flags & R::EditRank) ? Flag::f_edit_rank : Flag())),
+			| ((flags & R::CreateTopics) ? Flag::f_manage_topics : Flag())),
 		MTP_int(info.until));
 }
 

@@ -29,7 +29,7 @@ struct FilterValue final {
 		Invites = (1U << 15),
 		Topics = (1U << 16),
 		SubExtend = (1U << 17),
-		EditRank = (1U << 18),
+		MemberTags = (1U << 18),
 
 		MAX_FIELD = (1U << 18),
 	};
