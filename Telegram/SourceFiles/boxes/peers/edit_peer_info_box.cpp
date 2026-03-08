@@ -177,18 +177,44 @@ void SaveDefaultRestrictions(
 		not_null<PeerData*> peer,
 		ChatRestrictions rights,
 		Fn<void()> done) {
+	const auto mtpRights = RestrictionsToMTP({ rights, 0 });
+	const auto mtpFlags = mtpRights.match([](const MTPDchatBannedRights &data) {
+		return uint32(data.vflags().v);
+	});
+	const auto currentFlags = [&] {
+		if (const auto chat = peer->asChat()) {
+			return uint32(chat->defaultRestrictions().value());
+		} else if (const auto channel = peer->asChannel()) {
+			return uint32(channel->defaultRestrictions().value());
+		}
+		return uint32(0);
+	}();
+	LOG(("AyuGram SaveDefaultRestrictions: peer=%1 rights=0x%2 mtp_flags=0x%3 isChat=%4 isChannel=%5")
+		.arg(peer->id.value)
+		.arg(QString::number(rights.value(), 16))
+		.arg(QString::number(mtpFlags, 16))
+		.arg(int(peer->isChat()))
+		.arg(int(peer->isChannel())));
+	LOG(("AyuGram SaveDefaultRestrictions current: peer=%1 current_flags=0x%2")
+		.arg(peer->id.value)
+		.arg(QString::number(currentFlags, 16)));
 	const auto api = &peer->session().api();
 	const auto key = Api::RequestKey("default_restrictions", peer->id);
 
 	const auto requestId = api->request(
 		MTPmessages_EditChatDefaultBannedRights(
 			peer->input(),
-			RestrictionsToMTP({ rights, 0 }))
+			mtpRights)
 	).done([=](const MTPUpdates &result) {
+		LOG(("AyuGram SaveDefaultRestrictions done: peer=%1")
+			.arg(peer->id.value));
 		api->clearModifyRequest(key);
 		api->applyUpdates(result);
 		done();
 	}).fail([=](const MTP::Error &error) {
+		LOG(("AyuGram SaveDefaultRestrictions fail: peer=%1 error=%2")
+			.arg(peer->id.value)
+			.arg(error.type()));
 		api->clearModifyRequest(key);
 		if (error.type() != u"CHAT_NOT_MODIFIED"_q) {
 			return;
