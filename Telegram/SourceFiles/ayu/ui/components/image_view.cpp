@@ -3,12 +3,13 @@
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
 //
-// Copyright @Radolyn, 2026
-#include "ayu/ui/components/image_view.h"
+// Copyright @Radolyn, 2025
+#include "image_view.h"
 
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/utils/telegram_helpers.h"
 #include "styles/style_ayu_styles.h"
+
+#include "ayu/utils/telegram_helpers.h"
 #include "styles/style_chat.h"
 #include "ui/painter.h"
 
@@ -25,16 +26,6 @@ void ImageView::setImage(const QImage &image) {
 	{
 		this->prevImage = this->image;
 		this->image = image;
-
-		if (!this->prevImage.isNull()
-			&& !image.isNull()
-			&& this->prevImage.size() == image.size()) {
-			computeDiffImages(this->prevImage, image);
-		} else {
-			this->baseImage = QImage();
-			this->prevDiffImage = QImage();
-			this->newDiffImage = QImage();
-		}
 
 		const auto size = image.size() / style::DevicePixelRatio();
 		setMinimumSize(size.grownBy(st::imageViewInnerPadding));
@@ -67,36 +58,12 @@ void ImageView::setImage(const QImage &image) {
 	dispatchToMainThread(set, 100);
 }
 
-void ImageView::computeDiffImages(const QImage &prev, const QImage &curr) {
-	const auto prevConverted = prev.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-	const auto currConverted = curr.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-	const auto w = prevConverted.width();
-	const auto h = prevConverted.height();
-
-	auto base = currConverted.copy();
-	auto prevDiff = prevConverted.copy();
-	auto newDiff = currConverted.copy();
-
-	for (auto y = 0; y < h; ++y) {
-		const auto *prevLine = reinterpret_cast<const QRgb *>(prevConverted.constScanLine(y));
-		const auto *currLine = reinterpret_cast<const QRgb *>(currConverted.constScanLine(y));
-		auto *baseLine = reinterpret_cast<QRgb *>(base.scanLine(y));
-		auto *prevDiffLine = reinterpret_cast<QRgb *>(prevDiff.scanLine(y));
-		auto *newDiffLine = reinterpret_cast<QRgb *>(newDiff.scanLine(y));
-
-		for (auto x = 0; x < w; ++x) {
-			if (prevLine[x] == currLine[x]) {
-				prevDiffLine[x] = 0;
-				newDiffLine[x] = 0;
-			} else {
-				baseLine[x] = 0;
-			}
-		}
+void ImageView::setPreviewBackgroundVisible(bool visible) {
+	if (previewBackgroundVisible == visible) {
+		return;
 	}
-
-	this->baseImage = base;
-	this->prevDiffImage = prevDiff;
-	this->newDiffImage = newDiff;
+	previewBackgroundVisible = visible;
+	update();
 }
 
 QImage ImageView::getImage() const {
@@ -106,14 +73,46 @@ QImage ImageView::getImage() const {
 void ImageView::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
-	const auto brush = QBrush(AyuFeatures::MessageShot::makeDefaultBackgroundColor());
-
 	QPainterPath path;
 	path.addRoundedRect(rect(), st::roundRadiusLarge, st::roundRadiusLarge);
 
-	p.fillPath(path, brush);
+	if (previewBackgroundVisible) {
+		p.fillPath(path, AyuFeatures::MessageShot::makeDefaultBackgroundColor());
+	} else {
+		// Transparency preview for screenshots without an explicit background.
+		const auto check = 12;
+		const auto light = st::boxBg->c.lighter(115);
+		const auto dark = st::boxBg->c.darker(110);
 
-	if (!baseImage.isNull()) {
+		p.save();
+		p.setClipPath(path);
+		p.fillRect(rect(), light);
+		for (auto y = 0; y < height(); y += check) {
+			for (auto x = 0; x < width(); x += check) {
+				if (((x / check) + (y / check)) % 2 == 0) {
+					p.fillRect(QRect(x, y, check, check), dark);
+				}
+			}
+		}
+		p.restore();
+	}
+
+	if (!prevImage.isNull()) {
+		const auto realRect = rect().marginsRemoved(st::imageViewInnerPadding);
+
+		const auto resizedRect = QRect(
+			(realRect.width() - prevImage.width() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.left(),
+			(realRect.height() - prevImage.height() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.top(),
+			prevImage.width() / style::DevicePixelRatio(),
+			prevImage.height() / style::DevicePixelRatio());
+
+		const auto opacity = 1.0 - animation.value(1.0);
+		p.setOpacity(opacity);
+		p.drawImage(resizedRect, prevImage);
+		p.setOpacity(1.0);
+	}
+
+	if (!image.isNull()) {
 		const auto realRect = rect().marginsRemoved(st::imageViewInnerPadding);
 
 		const auto resizedRect = QRect(
@@ -122,51 +121,10 @@ void ImageView::paintEvent(QPaintEvent *e) {
 			image.width() / style::DevicePixelRatio(),
 			image.height() / style::DevicePixelRatio());
 
-		p.drawImage(resizedRect, baseImage);
-
-		const auto t = animation.value(1.0);
-
-		if (t < 1.0) {
-			p.setOpacity(1.0 - t);
-			p.drawImage(resizedRect, prevDiffImage);
-			p.setOpacity(1.0);
-		}
-
-		if (t > 0.0) {
-			p.setOpacity(t);
-			p.drawImage(resizedRect, newDiffImage);
-			p.setOpacity(1.0);
-		}
-	} else {
-		if (!prevImage.isNull()) {
-			const auto realRect = rect().marginsRemoved(st::imageViewInnerPadding);
-
-			const auto resizedRect = QRect(
-				(realRect.width() - prevImage.width() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.left(),
-				(realRect.height() - prevImage.height() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.top(),
-				prevImage.width() / style::DevicePixelRatio(),
-				prevImage.height() / style::DevicePixelRatio());
-
-			const auto opacity = 1.0 - animation.value(1.0);
-			p.setOpacity(opacity);
-			p.drawImage(resizedRect, prevImage);
-			p.setOpacity(1.0);
-		}
-
-		if (!image.isNull()) {
-			const auto realRect = rect().marginsRemoved(st::imageViewInnerPadding);
-
-			const auto resizedRect = QRect(
-				(realRect.width() - image.width() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.left(),
-				(realRect.height() - image.height() / style::DevicePixelRatio()) / 2 + st::imageViewInnerPadding.top(),
-				image.width() / style::DevicePixelRatio(),
-				image.height() / style::DevicePixelRatio());
-
-			const auto opacity = animation.value(1.0);
-			p.setOpacity(opacity);
-			p.drawImage(resizedRect, image);
-			p.setOpacity(1.0);
-		}
+		const auto opacity = animation.value(1.0);
+		p.setOpacity(opacity);
+		p.drawImage(resizedRect, image);
+		p.setOpacity(1.0);
 	}
 }
 

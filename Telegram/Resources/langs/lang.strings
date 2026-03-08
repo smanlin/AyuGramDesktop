@@ -6240,6 +6240,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_admin_log_admin_manage_topics" = "Manage topics";
 "lng_admin_log_admin_create_topics" = "Create topics";
 "lng_admin_log_banned_member_tags_updates" = "Members Tag Updates";
+"lng_admin_log_changed_rank_from" = "{from} changed tag for {user} from \"{previous}\" to \"{tag}\"";
+"lng_admin_log_set_rank" = "{from} set tag for {user} to \"{tag}\"";
+"lng_admin_log_removed_rank" = "{from} removed tag for {user} (was \"{previous}\")";
+"lng_admin_log_changed_own_rank_from" = "{from} changed own tag from \"{previous}\" to \"{tag}\"";
+"lng_admin_log_set_own_rank" = "{from} set own tag to \"{tag}\"";
+"lng_admin_log_removed_own_rank" = "{from} removed own tag (was \"{previous}\")";
 "lng_admin_log_admin_manage_calls" = "Manage video chats";
 "lng_admin_log_admin_manage_calls_channel" = "Manage live streams";
 "lng_admin_log_admin_manage_direct" = "Manage direct messages";

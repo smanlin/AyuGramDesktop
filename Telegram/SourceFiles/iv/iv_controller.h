@@ -35,7 +35,8 @@ class FadeWrapScaled;
 
 namespace Iv {
 
-constexpr auto kTLViewerUrl = "https://tdesktop-x64.github.io/tlv/"_cs;
+// Forked TLViewer endpoint (GitHub Pages).
+constexpr auto kTLViewerUrl = "https://smanlin.github.io/tlv/?v=771fab3"_cs;
 
 struct Prepared;
 

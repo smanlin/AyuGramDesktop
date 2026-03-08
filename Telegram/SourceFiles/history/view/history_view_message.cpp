@@ -77,6 +77,45 @@ bool ShowFastForwardFor(const QString &username) {
 		|| !username.compare(u"reviews_bot"_q, Qt::CaseInsensitive);
 }
 
+[[nodiscard]] std::optional<QColor> ParseUserColor(const QString &value) {
+	const auto parsed = QColor(value.trimmed());
+	if (!parsed.isValid()) {
+		return std::nullopt;
+	}
+	auto color = parsed;
+	color.setAlpha(255);
+	return color;
+}
+
+[[nodiscard]] QColor DefaultAlwaysShowSpoilerTextColor(QColor base) {
+	// Keep spoiler-family hue, but improve readability against bubble background.
+	if (base.lightness() < 140) {
+		base = base.lighter(185);
+	} else {
+		base = base.darker(165);
+	}
+	base.setAlpha(255);
+	return base;
+}
+
+[[nodiscard]] QColor ResolveAlwaysShowSpoilerTextColor(
+		const AyuSettings::AyuGramSettings &settings,
+		bool darkMode,
+		bool selfMessage,
+		QColor fallback) {
+	const auto &configured = selfMessage
+		? (darkMode
+			? settings.alwaysShowSpoilerTextColorDarkSelf
+			: settings.alwaysShowSpoilerTextColorLightSelf)
+		: (darkMode
+			? settings.alwaysShowSpoilerTextColorDarkPeer
+			: settings.alwaysShowSpoilerTextColorLightPeer);
+	if (const auto parsed = ParseUserColor(configured)) {
+		return *parsed;
+	}
+	return DefaultAlwaysShowSpoilerTextColor(fallback);
+}
+
 [[nodiscard]] ClickHandlerPtr MakeTopicButtonLink(
 		not_null<Data::ForumTopic*> topic,
 		MsgId messageId) {
@@ -1874,10 +1913,23 @@ void Message::paintText(
 	}
 	prepareCustomEmojiPaint(p, context, text());
 	auto highlightRequest = context.computeHighlightCache();
+	auto textPalette = stm->textPalette;
+	std::optional<style::owned_color> spoilerOverride;
+	const auto &settings = AyuSettings::getInstance();
+	if (settings.alwaysShowSpoilerText) {
+		const auto spoilerColor = ResolveAlwaysShowSpoilerTextColor(
+			settings,
+			Window::Theme::IsNightMode(),
+			hasOutLayout(),
+			textPalette.spoilerFg->c);
+		spoilerOverride.emplace(spoilerColor);
+		textPalette.spoilerFg = spoilerOverride->color();
+		textPalette.selectSpoilerFg = spoilerOverride->color();
+	}
 	text().draw(p, {
 		.position = trect.topLeft(),
 		.availableWidth = trect.width(),
-		.palette = &stm->textPalette,
+		.palette = &textPalette,
 		.pre = stm->preCache.get(),
 		.blockquote = context.quoteCache(
 			contentColorCollectible(),

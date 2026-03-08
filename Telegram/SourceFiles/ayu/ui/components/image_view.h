@@ -3,7 +3,7 @@
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
 //
-// Copyright @Radolyn, 2026
+// Copyright @Radolyn, 2025
 #pragma once
 
 #include "ui/rp_widget.h"
@@ -15,20 +15,17 @@ public:
 	ImageView(QWidget *parent);
 
 	void setImage(const QImage &image);
+	void setPreviewBackgroundVisible(bool visible);
 	QImage getImage() const;
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
 	void mousePressEvent(QMouseEvent *e) override;
 
-	void computeDiffImages(const QImage &prev, const QImage &curr);
-
 private:
 	QImage image;
 	QImage prevImage;
-	QImage baseImage;
-	QImage prevDiffImage;
-	QImage newDiffImage;
+	bool previewBackgroundVisible = true;
 
 	Ui::Animations::Simple animation;
 

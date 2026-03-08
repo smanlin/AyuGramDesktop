@@ -309,7 +309,8 @@ TextWithEntities GenerateAdminChangeText(
 
 QString GeneratePermissionsChangeText(
 		ChatRestrictionsInfo newRights,
-		ChatRestrictionsInfo prevRights) {
+		ChatRestrictionsInfo prevRights,
+		bool isForum) {
 	using Flag = ChatRestriction;
 	using Flags = ChatRestrictions;
 
@@ -334,18 +335,143 @@ QString GeneratePermissionsChangeText(
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },
-		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics },
-		{ Flag::EditOwnTags, tr::lng_admin_log_banned_member_tags_updates },
+		{
+			Flag::CreateTopics,
+			isForum
+				? tr::lng_admin_log_admin_create_topics
+				: tr::lng_rights_group_edit_own_tags
+		},
+		{ Flag::EditOwnTags, tr::lng_rights_group_edit_own_tags },
 		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
 	};
 	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
+}
+
+std::optional<bool> MemberTagsBanned(const MTPChatBannedRights &rights) {
+	return rights.match([](const MTPDchatBannedRights &data)
+	-> std::optional<bool> {
+		return data.is_member_tags();
+	});
+}
+
+std::optional<uint32> RawBannedRightsFlags(const MTPChatBannedRights &rights) {
+	return rights.match([](const MTPDchatBannedRights &data)
+	-> std::optional<uint32> {
+		return uint32(data.vflags().v);
+	});
+}
+
+std::optional<bool> ParticipantMemberTagsBanned(
+		const MTPChannelParticipant &participant) {
+	return participant.match([](const MTPDchannelParticipantBanned &data)
+	-> std::optional<bool> {
+		return MemberTagsBanned(data.vbanned_rights());
+	}, [](const auto &) -> std::optional<bool> {
+		return std::nullopt;
+	});
+}
+
+std::optional<ChatRestrictionsInfo> ParticipantRestrictionsInfo(
+		const MTPChannelParticipant &participant) {
+	return participant.match([](const MTPDchannelParticipantBanned &data)
+	-> std::optional<ChatRestrictionsInfo> {
+		return ChatRestrictionsInfo(data.vbanned_rights());
+	}, [](const auto &) -> std::optional<ChatRestrictionsInfo> {
+		return std::nullopt;
+	});
+}
+
+std::optional<uint32> ParticipantRawBannedRightsFlags(
+		const MTPChannelParticipant &participant) {
+	return participant.match([](const MTPDchannelParticipantBanned &data)
+	-> std::optional<uint32> {
+		return RawBannedRightsFlags(data.vbanned_rights());
+	}, [](const auto &) -> std::optional<uint32> {
+		return std::nullopt;
+	});
+}
+
+std::optional<uint32> RawAdminRightsFlags(const MTPChatAdminRights &rights) {
+	return rights.match([](const MTPDchatAdminRights &data)
+	-> std::optional<uint32> {
+		return uint32(data.vflags().v);
+	});
+}
+
+ChatAdminRightsInfo ParticipantAdminRightsInfoOrEmpty(
+		const MTPChannelParticipant &participant) {
+	return participant.match([](const MTPDchannelParticipantAdmin &data) {
+		return ChatAdminRightsInfo(data.vadmin_rights());
+	}, [](const auto &) {
+		return ChatAdminRightsInfo();
+	});
+}
+
+std::optional<uint32> ParticipantRawAdminRightsFlags(
+		const MTPChannelParticipant &participant) {
+	return participant.match([](const MTPDchannelParticipantAdmin &data)
+	-> std::optional<uint32> {
+		return RawAdminRightsFlags(data.vadmin_rights());
+	}, [](const auto &) -> std::optional<uint32> {
+		return std::nullopt;
+	});
+}
+
+void DebugLogMemberTagsRights(
+		const QString &scope,
+		ChatRestrictionsInfo prevRights,
+		ChatRestrictionsInfo newRights,
+		std::optional<bool> prevMemberTags = std::nullopt,
+		std::optional<bool> newMemberTags = std::nullopt,
+		std::optional<uint32> prevRawFlags = std::nullopt,
+		std::optional<uint32> newRawFlags = std::nullopt) {
+	using Flag = ChatRestriction;
+	constexpr auto kMemberTagsBit = uint32(1) << 26;
+	const auto prevBit = bool(prevRights.flags & Flag::EditOwnTags);
+	const auto newBit = bool(newRights.flags & Flag::EditOwnTags);
+	const auto prevRawBit26 = prevRawFlags
+		? int(((*prevRawFlags) & kMemberTagsBit) != 0)
+		: -1;
+	const auto newRawBit26 = newRawFlags
+		? int(((*newRawFlags) & kMemberTagsBit) != 0)
+		: -1;
+	LOG(("AyuGram AdminLog member_tags [%1]: prev_flags=0x%2 new_flags=0x%3 prev_bit=%4 new_bit=%5 prev_raw=%6 new_raw=%7 prev_mtp_flags=0x%8 new_mtp_flags=0x%9 prev_mtp_bit26=%10 new_mtp_bit26=%11 prev_until=%12 new_until=%13")
+		.arg(scope)
+		.arg(QString::number(prevRights.flags.value(), 16))
+		.arg(QString::number(newRights.flags.value(), 16))
+		.arg(int(prevBit))
+		.arg(int(newBit))
+		.arg(prevMemberTags.has_value() ? QString::number(int(*prevMemberTags)) : QString("n/a"))
+		.arg(newMemberTags.has_value() ? QString::number(int(*newMemberTags)) : QString("n/a"))
+		.arg(prevRawFlags.has_value() ? QString::number(*prevRawFlags, 16) : QString("n/a"))
+		.arg(newRawFlags.has_value() ? QString::number(*newRawFlags, 16) : QString("n/a"))
+		.arg(prevRawBit26)
+		.arg(newRawBit26)
+		.arg(prevRights.until)
+		.arg(newRights.until));
+}
+
+void AppendMemberTagsFallback(
+		TextWithEntities &result,
+		bool wasBanned,
+		bool nowBanned) {
+	if (wasBanned == nowBanned) {
+		return;
+	}
+	const auto label = tr::lng_rights_group_edit_own_tags(tr::now);
+	if (label.isEmpty() || result.text.contains(label)) {
+		return;
+	}
+	const auto sign = nowBanned ? QChar(0x2212) : QChar('+');
+	result.text.append('\n' + (sign + label));
 }
 
 TextWithEntities GeneratePermissionsChangeText(
 		PeerId participantId,
 		const TextWithEntities &user,
 		ChatRestrictionsInfo newRights,
-		ChatRestrictionsInfo prevRights) {
+		ChatRestrictionsInfo prevRights,
+		bool isForum) {
 	using Flag = ChatRestriction;
 
 	const auto newFlags = newRights.flags;
@@ -382,7 +508,8 @@ TextWithEntities GeneratePermissionsChangeText(
 		tr::marked);
 	const auto changes = GeneratePermissionsChangeText(
 		newRights,
-		prevRights);
+		prevRights,
+		isForum);
 	if (!changes.isEmpty()) {
 		result.text.append('\n' + changes);
 	}
@@ -599,16 +726,18 @@ auto GenerateParticipantChangeText(
 				participantId,
 				user,
 				ChatRestrictionsInfo(),
-				oldRestrictions);
+				oldRestrictions,
+				channel->isForum());
 		} else if (oldParticipant
 				&& oldParticipant->type() == Type::Restricted
 				&& (participant.type() == Type::Member
-						|| participant.type() == Type::Left)) {
+					|| participant.type() == Type::Left)) {
 			return GeneratePermissionsChangeText(
 				participantId,
 				user,
 				ChatRestrictionsInfo(),
-				oldRestrictions);
+				oldRestrictions,
+				channel->isForum());
 		}
 		return tr::lng_admin_log_invited(
 			tr::now,
@@ -657,7 +786,8 @@ auto GenerateParticipantChangeText(
 					peerId,
 					user,
 					participant.restrictions(),
-					oldRestrictions);
+					oldRestrictions,
+					channel->isForum());
 			}
 		case Api::ChatParticipant::Type::Left:
 		case Api::ChatParticipant::Type::Member:
@@ -675,7 +805,7 @@ TextWithEntities GenerateParticipantChangeText(
 		not_null<ChannelData*> channel,
 		const MTPChannelParticipant &participant,
 		std::optional<MTPChannelParticipant>oldParticipant = std::nullopt) {
-	return GenerateParticipantChangeText(
+	auto result = GenerateParticipantChangeText(
 		channel,
 		Api::ChatParticipant(participant, channel),
 		oldParticipant
@@ -683,6 +813,28 @@ TextWithEntities GenerateParticipantChangeText(
 				*oldParticipant,
 				channel))
 			: std::nullopt);
+	if (oldParticipant) {
+		const auto prevInfo = ParticipantRestrictionsInfo(*oldParticipant);
+		const auto newInfo = ParticipantRestrictionsInfo(participant);
+		const auto was = ParticipantMemberTagsBanned(*oldParticipant);
+		const auto now = ParticipantMemberTagsBanned(participant);
+		const auto prevRawFlags = ParticipantRawBannedRightsFlags(*oldParticipant);
+		const auto newRawFlags = ParticipantRawBannedRightsFlags(participant);
+		if (prevInfo && newInfo) {
+			DebugLogMemberTagsRights(
+				QString("participant_change"),
+				*prevInfo,
+				*newInfo,
+				was,
+				now,
+				prevRawFlags,
+				newRawFlags);
+		}
+		if (was && now) {
+			AppendMemberTagsFallback(result, *was, *now);
+		}
+	}
+	return result;
 }
 
 TextWithEntities GenerateDefaultBannedRightsChangeText(
@@ -694,7 +846,8 @@ TextWithEntities GenerateDefaultBannedRightsChangeText(
 	};
 	const auto changes = GeneratePermissionsChangeText(
 		rights,
-		oldRights);
+		oldRights,
+		channel->isForum());
 	if (!changes.isEmpty()) {
 		result.text.append('\n' + changes);
 	}
@@ -847,6 +1000,9 @@ void GenerateItems(
 	const auto broadcast = channel->isBroadcast();
 	const auto &action = event.vaction();
 	const auto date = event.vdate().v;
+	LOG(("AyuGram AdminLog event: id=%1 action_type=0x%2")
+		.arg(QString::number(id))
+		.arg(QString::number(uint32(action.type()), 16)));
 	const auto addPart = [&](
 			not_null<HistoryItem*> item,
 			TimeId sentDate = 0,
@@ -1152,6 +1308,29 @@ void GenerateItems(
 	};
 
 	const auto createParticipantToggleAdmin = [&](const LogPromote &action) {
+		const auto newParticipant = Api::ChatParticipant(
+			action.vnew_participant(),
+			channel);
+		const auto prevParticipant = Api::ChatParticipant(
+			action.vprev_participant(),
+			channel);
+		const auto oldRightsFlags = prevParticipant.rights().flags;
+		const auto newRightsFlags = newParticipant.rights().flags;
+		const auto rightsChanged = (oldRightsFlags != newRightsFlags)
+			|| (prevParticipant.type() != newParticipant.type());
+		const auto prevRank = prevParticipant.rank();
+		const auto newRank = newParticipant.rank();
+		const auto rankChanged = (prevRank != newRank);
+		LOG(("AyuGram AdminLog toggle_admin rank_probe: id=%1 peer=%2 prev_type=%3 new_type=%4 prev_rank=\"%5\" new_rank=\"%6\" rights_changed=%7 rank_changed=%8")
+			.arg(QString::number(id))
+			.arg(QString::number(newParticipant.id().value))
+			.arg(int(prevParticipant.type()))
+			.arg(int(newParticipant.type()))
+			.arg(prevRank)
+			.arg(newRank)
+			.arg(int(rightsChanged))
+			.arg(int(rankChanged)));
+
 		if ((action.vnew_participant().type() == mtpc_channelParticipantAdmin)
 			&& (action.vprev_participant().type()
 				== mtpc_channelParticipantCreator)) {
@@ -1159,11 +1338,94 @@ void GenerateItems(
 			// the "User > Creator" part and skip the "Creator > Admin" part.
 			return;
 		}
-		addSimpleTextMessage(
-			GenerateParticipantChangeText(
-				channel,
-				action.vnew_participant(),
-				action.vprev_participant()));
+
+		if (rankChanged && peerIsUser(newParticipant.id())) {
+			const auto user = history->owner().user(peerToUser(newParticipant.id()));
+			const auto isSelf = (user == from);
+			const auto text = [&] {
+				if (isSelf) {
+					if (newRank.isEmpty()) {
+						return tr::lng_admin_log_removed_own_rank(
+							tr::now,
+							lt_from,
+							fromLinkText,
+							lt_previous,
+							{ prevRank },
+							tr::marked);
+					} else if (prevRank.isEmpty()) {
+						return tr::lng_admin_log_set_own_rank(
+							tr::now,
+							lt_from,
+							fromLinkText,
+							lt_tag,
+							{ newRank },
+							tr::marked);
+					}
+					return tr::lng_admin_log_changed_own_rank_from(
+						tr::now,
+						lt_from,
+						fromLinkText,
+						lt_previous,
+						{ prevRank },
+						lt_tag,
+						{ newRank },
+						tr::marked);
+				}
+				const auto userLinkText = TextWithEntities{ user->name() };
+				if (newRank.isEmpty()) {
+					return tr::lng_admin_log_removed_rank(
+						tr::now,
+						lt_from,
+						fromLinkText,
+						lt_user,
+						userLinkText,
+						lt_previous,
+						{ prevRank },
+						tr::marked);
+				} else if (prevRank.isEmpty()) {
+					return tr::lng_admin_log_set_rank(
+						tr::now,
+						lt_from,
+						fromLinkText,
+						lt_user,
+						userLinkText,
+						lt_tag,
+						{ newRank },
+						tr::marked);
+				}
+				return tr::lng_admin_log_changed_rank_from(
+					tr::now,
+					lt_from,
+					fromLinkText,
+					lt_user,
+					userLinkText,
+					lt_previous,
+					{ prevRank },
+					lt_tag,
+					{ newRank },
+					tr::marked);
+			}();
+			LOG(("AyuGram AdminLog rank_message_emit: id=%1 peer=%2 is_self=%3 prev_rank=\"%4\" new_rank=\"%5\" text=\"%6\"")
+				.arg(QString::number(id))
+				.arg(QString::number(newParticipant.id().value))
+				.arg(int(isSelf))
+				.arg(prevRank)
+				.arg(newRank)
+				.arg(text.text));
+			if (isSelf) {
+				addSimpleServiceMessage(text);
+			} else {
+				addSimpleServiceMessage(text);
+			}
+		}
+
+		if (rightsChanged || !rankChanged) {
+			addSimpleTextMessage(
+				GenerateParticipantChangeText(
+					channel,
+					action.vnew_participant(),
+					action.vprev_participant()));
+		}
 	};
 
 	const auto createChangeStickerSet = [&](const LogSticker &action) {
@@ -1269,11 +1531,28 @@ void GenerateItems(
 
 	const auto createDefaultBannedRights = [&](
 			const LogPermissions &action) {
-		addSimpleTextMessage(
-			GenerateDefaultBannedRightsChangeText(
-				channel,
-				ChatRestrictionsInfo(action.vnew_banned_rights()),
-				ChatRestrictionsInfo(action.vprev_banned_rights())));
+		const auto newRights = ChatRestrictionsInfo(action.vnew_banned_rights());
+		const auto prevRights = ChatRestrictionsInfo(action.vprev_banned_rights());
+		auto text = GenerateDefaultBannedRightsChangeText(
+			channel,
+			newRights,
+			prevRights);
+		const auto was = MemberTagsBanned(action.vprev_banned_rights());
+		const auto now = MemberTagsBanned(action.vnew_banned_rights());
+		const auto prevRawFlags = RawBannedRightsFlags(action.vprev_banned_rights());
+		const auto newRawFlags = RawBannedRightsFlags(action.vnew_banned_rights());
+		DebugLogMemberTagsRights(
+			QString("default_banned_rights"),
+			prevRights,
+			newRights,
+			was,
+			now,
+			prevRawFlags,
+			newRawFlags);
+		if (was && now) {
+			AppendMemberTagsFallback(text, *was, *now);
+		}
+		addSimpleTextMessage(std::move(text));
 	};
 
 	const auto createStopPoll = [&](const LogPoll &action) {
