@@ -218,6 +218,109 @@ void SetupSpyEssentials(not_null<Ui::VerticalLayout*> container) {
 		container->lifetime());
 
 	AddSkip(container);
+	AddDividerText(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedMessagesByType"),
+			qsl("保留被刪除訊息（依類型）"))));
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeText"),
+			qsl("文字"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeText)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeText);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeText(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeVisual"),
+			qsl("圖片 / 影片"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeVisual)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeVisual);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeVisual(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeAudio"),
+			qsl("音訊（語音 / 音樂）"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeAudio)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeAudio);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeAudio(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeSticker"),
+			qsl("貼圖 / 動態貼圖"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeSticker)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeSticker);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeSticker(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeGif"),
+			qsl("GIF / 動畫"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeGif)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeGif);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeGif(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddButtonWithIcon(
+		container,
+		rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeEmoji"),
+			qsl("Emoji"))),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(settings->saveDeletedTypeEmoji)
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->saveDeletedTypeEmoji);
+	}) | on_next([=](bool enabled) {
+		AyuSettings::set_saveDeletedTypeEmoji(enabled);
+		AyuSettings::save();
+	}, container->lifetime());
+
+	AddSkip(container);
 	AddDivider(container);
 	AddSkip(container);
 

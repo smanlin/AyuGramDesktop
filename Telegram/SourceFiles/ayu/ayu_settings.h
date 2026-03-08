@@ -60,6 +60,12 @@ public:
 
 	bool saveDeletedMessages;
 	bool saveMessagesHistory;
+	bool saveDeletedTypeText;
+	bool saveDeletedTypeVisual;
+	bool saveDeletedTypeAudio;
+	bool saveDeletedTypeSticker;
+	bool saveDeletedTypeGif;
+	bool saveDeletedTypeEmoji;
 
 	bool saveForBots;
 	bool excludeBotsInGroups;
@@ -151,6 +157,10 @@ public:
 	bool showViewJson;
 	bool alwaysShowSpoilerText;
 	bool alwaysShowSpoilerMedia;
+	QString alwaysShowSpoilerTextColorLightSelf;
+	QString alwaysShowSpoilerTextColorLightPeer;
+	QString alwaysShowSpoilerTextColorDarkSelf;
+	QString alwaysShowSpoilerTextColorDarkPeer;
 
 	bool stickerConfirmation;
 	bool gifConfirmation;
@@ -181,6 +191,12 @@ void set_sendWithoutSound(bool val);
 
 void set_saveDeletedMessages(bool val);
 void set_saveMessagesHistory(bool val);
+void set_saveDeletedTypeText(bool val);
+void set_saveDeletedTypeVisual(bool val);
+void set_saveDeletedTypeAudio(bool val);
+void set_saveDeletedTypeSticker(bool val);
+void set_saveDeletedTypeGif(bool val);
+void set_saveDeletedTypeEmoji(bool val);
 
 void set_saveForBots(bool val);
 void set_excludeBotsInGroups(bool val);
@@ -297,6 +313,12 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(sendWithoutSound)
 	NLOHMANN_JSON_TO(saveDeletedMessages)
 	NLOHMANN_JSON_TO(saveMessagesHistory)
+	NLOHMANN_JSON_TO(saveDeletedTypeText)
+	NLOHMANN_JSON_TO(saveDeletedTypeVisual)
+	NLOHMANN_JSON_TO(saveDeletedTypeAudio)
+	NLOHMANN_JSON_TO(saveDeletedTypeSticker)
+	NLOHMANN_JSON_TO(saveDeletedTypeGif)
+	NLOHMANN_JSON_TO(saveDeletedTypeEmoji)
 	NLOHMANN_JSON_TO(saveForBots)
 	NLOHMANN_JSON_TO(excludeBotsInGroups)
 	NLOHMANN_JSON_TO(deleteBypassKeywordsEnabled)
@@ -371,6 +393,10 @@ inline void to_json(nlohmann::json &nlohmann_json_j, const AyuGramSettings &nloh
 	NLOHMANN_JSON_TO(showViewJson)
 	NLOHMANN_JSON_TO(alwaysShowSpoilerText)
 	NLOHMANN_JSON_TO(alwaysShowSpoilerMedia)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerTextColorLightSelf)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerTextColorLightPeer)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerTextColorDarkSelf)
+	NLOHMANN_JSON_TO(alwaysShowSpoilerTextColorDarkPeer)
 	NLOHMANN_JSON_TO(stickerConfirmation)
 	NLOHMANN_JSON_TO(gifConfirmation)
 	NLOHMANN_JSON_TO(voiceConfirmation)
@@ -393,6 +419,12 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(sendWithoutSound)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedMessages)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveMessagesHistory)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeText)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeVisual)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeAudio)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeSticker)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeGif)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveDeletedTypeEmoji)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(saveForBots)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(excludeBotsInGroups)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(deleteBypassKeywordsEnabled)
@@ -467,6 +499,10 @@ inline void from_json(const nlohmann::json &nlohmann_json_j, AyuGramSettings &nl
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(showViewJson)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerText)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerMedia)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerTextColorLightSelf)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerTextColorLightPeer)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerTextColorDarkSelf)
+	NLOHMANN_JSON_FROM_WITH_DEFAULT(alwaysShowSpoilerTextColorDarkPeer)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(stickerConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(gifConfirmation)
 	NLOHMANN_JSON_FROM_WITH_DEFAULT(voiceConfirmation)

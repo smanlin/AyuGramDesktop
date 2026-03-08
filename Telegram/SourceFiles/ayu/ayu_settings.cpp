@@ -238,6 +238,12 @@ AyuGramSettings::AyuGramSettings() {
 	// ~ Message edits & deletion history
 	saveDeletedMessages = true;
 	saveMessagesHistory = true;
+	saveDeletedTypeText = true;
+	saveDeletedTypeVisual = true;
+	saveDeletedTypeAudio = true;
+	saveDeletedTypeSticker = true;
+	saveDeletedTypeGif = true;
+	saveDeletedTypeEmoji = true;
 
 	saveForBots = false;
 	excludeBotsInGroups = false;
@@ -351,6 +357,10 @@ AyuGramSettings::AyuGramSettings() {
 	showViewJson = false;
 	alwaysShowSpoilerText = false;
 	alwaysShowSpoilerMedia = false;
+	alwaysShowSpoilerTextColorLightSelf = "";
+	alwaysShowSpoilerTextColorLightPeer = "";
+	alwaysShowSpoilerTextColorDarkSelf = "";
+	alwaysShowSpoilerTextColorDarkPeer = "";
 
 	// ~ Confirmations
 	stickerConfirmation = false;
@@ -422,6 +432,30 @@ void set_saveDeletedMessages(bool val) {
 
 void set_saveMessagesHistory(bool val) {
 	settings->saveMessagesHistory = val;
+}
+
+void set_saveDeletedTypeText(bool val) {
+	settings->saveDeletedTypeText = val;
+}
+
+void set_saveDeletedTypeVisual(bool val) {
+	settings->saveDeletedTypeVisual = val;
+}
+
+void set_saveDeletedTypeAudio(bool val) {
+	settings->saveDeletedTypeAudio = val;
+}
+
+void set_saveDeletedTypeSticker(bool val) {
+	settings->saveDeletedTypeSticker = val;
+}
+
+void set_saveDeletedTypeGif(bool val) {
+	settings->saveDeletedTypeGif = val;
+}
+
+void set_saveDeletedTypeEmoji(bool val) {
+	settings->saveDeletedTypeEmoji = val;
 }
 
 void set_saveForBots(bool val) {
