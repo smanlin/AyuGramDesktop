@@ -1989,4 +1989,3 @@ void TopBarWidget::updateOnlineDisplayIn(crl::time timeout) {
 }
 
 } // namespace HistoryView
-
