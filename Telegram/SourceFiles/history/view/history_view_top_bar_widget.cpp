@@ -199,7 +199,6 @@ TopBarWidget::TopBarWidget(
 			ShowEditChatPermissions(_controller, peer);
 		}
 	});
-
 	AyuSettings::getInstance().quickAdminShortcutsChanges(
 	) | rpl::on_next([=](bool) {
 		updateControlsVisibility();
@@ -1990,5 +1989,4 @@ void TopBarWidget::updateOnlineDisplayIn(crl::time timeout) {
 }
 
 } // namespace HistoryView
-
 
