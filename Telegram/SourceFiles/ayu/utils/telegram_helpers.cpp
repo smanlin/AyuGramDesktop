@@ -722,6 +722,52 @@ bool containsDeleteBypassUserId(const not_null<HistoryItem*> item) {
 	}
 	return false;
 }
+
+bool isMessageTypeSavable(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+
+	if (item->isService()) {
+		return true;
+	}
+
+	if (!item->media()) {
+		return item->isOnlyEmojiAndSpaces()
+			? settings.saveDeletedTypeEmoji
+			: settings.saveDeletedTypeText;
+	}
+
+	const auto media = item->media();
+	if (const auto document = media->document()) {
+		if (document->isPremiumEmoji()) {
+			return settings.saveDeletedTypeEmoji;
+		}
+		if (document->sticker()) {
+			return settings.saveDeletedTypeSticker;
+		}
+		if (document->isGifv()
+			|| (document->isAnimation() && !document->sticker())) {
+			return settings.saveDeletedTypeGif;
+		}
+		if (document->isVoiceMessage()
+			|| document->isSong()
+			|| document->isAudioFile()) {
+			return settings.saveDeletedTypeAudio;
+		}
+		if (document->isVideoMessage()
+			|| document->isVideoFile()
+			|| document->isImage()) {
+			return settings.saveDeletedTypeVisual;
+		}
+		return true;
+	}
+
+	if (media->photo()) {
+		return settings.saveDeletedTypeVisual;
+	}
+
+	return true;
+}
+
 bool isMessageSavable(const not_null<HistoryItem*> item) {
 	const auto &settings = AyuSettings::getInstance();
 
@@ -731,6 +777,9 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 
 	const auto &text = item->originalText().text;
 	if (containsDeleteBypassKeyword(text) || containsDeleteBypassUserId(item)) {
+		return false;
+	}
+	if (!isMessageTypeSavable(item)) {
 		return false;
 	}
 
