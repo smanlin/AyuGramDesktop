@@ -62,6 +62,7 @@ void MessageShotBox::setupContent() {
 	AddSubsectionTitle(content, mapAyu("ayu_MessageShotPreview", tr::ayu_MessageShotPreview()));
 
 	const auto imageView = content->add(object_ptr<ImageView>(content), st::imageViewPadding);
+	imageView->setPreviewBackgroundVisible(_config.showBackground);
 
 	AddSkip(content);
 	AddDivider(content);
@@ -127,6 +128,7 @@ void MessageShotBox::setupContent() {
 		[=](bool enabled)
 		{
 			_config.showBackground = enabled;
+			imageView->setPreviewBackgroundVisible(enabled);
 
 			updatePreview();
 		},

@@ -15,6 +15,7 @@ public:
 	ImageView(QWidget *parent);
 
 	void setImage(const QImage &image);
+	void setPreviewBackgroundVisible(bool visible);
 	QImage getImage() const;
 
 protected:
@@ -24,6 +25,7 @@ protected:
 private:
 	QImage image;
 	QImage prevImage;
+	bool previewBackgroundVisible = true;
 
 	Ui::Animations::Simple animation;
 

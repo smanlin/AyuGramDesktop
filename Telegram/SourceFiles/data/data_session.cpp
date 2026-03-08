@@ -848,7 +848,15 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			chat->setAdminRights(ChatAdminRights());
 		}
 		if (const auto rights = data.vdefault_banned_rights()) {
-			chat->setDefaultRestrictions(ChatRestrictionsInfo(*rights).flags);
+			const auto parsed = ChatRestrictionsInfo(*rights).flags;
+			const auto raw = rights->match([](const MTPDchatBannedRights &data) {
+				return uint32(data.vflags().v);
+			});
+			LOG(("AyuGram Session default_banned_rights(chat): peer=%1 raw=0x%2 parsed=0x%3")
+				.arg(chat->id.value)
+				.arg(QString::number(raw, 16))
+				.arg(QString::number(parsed.value(), 16)));
+			chat->setDefaultRestrictions(parsed);
 		} else {
 			chat->setDefaultRestrictions(ChatRestrictions());
 		}
@@ -939,7 +947,15 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			channel->setMembersCount(count->v);
 		}
 		if (const auto rights = data.vdefault_banned_rights()) {
-			channel->setDefaultRestrictions(ChatRestrictionsInfo(*rights).flags);
+			const auto parsed = ChatRestrictionsInfo(*rights).flags;
+			const auto raw = rights->match([](const MTPDchatBannedRights &data) {
+				return uint32(data.vflags().v);
+			});
+			LOG(("AyuGram Session default_banned_rights(channel): peer=%1 raw=0x%2 parsed=0x%3")
+				.arg(channel->id.value)
+				.arg(QString::number(raw, 16))
+				.arg(QString::number(parsed.value(), 16)));
+			channel->setDefaultRestrictions(parsed);
 		} else {
 			channel->setDefaultRestrictions(ChatRestrictions());
 		}

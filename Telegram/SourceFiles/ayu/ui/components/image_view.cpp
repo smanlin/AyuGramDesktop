@@ -58,6 +58,14 @@ void ImageView::setImage(const QImage &image) {
 	dispatchToMainThread(set, 100);
 }
 
+void ImageView::setPreviewBackgroundVisible(bool visible) {
+	if (previewBackgroundVisible == visible) {
+		return;
+	}
+	previewBackgroundVisible = visible;
+	update();
+}
+
 QImage ImageView::getImage() const {
 	return image;
 }
@@ -65,12 +73,29 @@ QImage ImageView::getImage() const {
 void ImageView::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
-	const auto brush = QBrush(AyuFeatures::MessageShot::makeDefaultBackgroundColor());
-
 	QPainterPath path;
 	path.addRoundedRect(rect(), st::roundRadiusLarge, st::roundRadiusLarge);
 
-	p.fillPath(path, brush);
+	if (previewBackgroundVisible) {
+		p.fillPath(path, AyuFeatures::MessageShot::makeDefaultBackgroundColor());
+	} else {
+		// Transparency preview for screenshots without an explicit background.
+		const auto check = 12;
+		const auto light = st::boxBg->c.lighter(115);
+		const auto dark = st::boxBg->c.darker(110);
+
+		p.save();
+		p.setClipPath(path);
+		p.fillRect(rect(), light);
+		for (auto y = 0; y < height(); y += check) {
+			for (auto x = 0; x < width(); x += check) {
+				if (((x / check) + (y / check)) % 2 == 0) {
+					p.fillRect(QRect(x, y, check, check), dark);
+				}
+			}
+		}
+		p.restore();
+	}
 
 	if (!prevImage.isNull()) {
 		const auto realRect = rect().marginsRemoved(st::imageViewInnerPadding);

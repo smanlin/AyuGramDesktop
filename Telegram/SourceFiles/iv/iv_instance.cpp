@@ -1156,7 +1156,10 @@ void Instance::showTLViewer(int32 layer, const QString &object) {
 	if (Platform::IsMac()) {
 		Core::App().hideMediaView();
 	}
-	auto uri = QString("%1#m=%2&l=%3&td=1").arg(Iv::kTLViewerUrl.data()).arg(object).arg(layer);
+	auto uri = QString("%1#m=%2&l=%3&f=1&td=1")
+		.arg(Iv::kTLViewerUrl.data())
+		.arg(object)
+		.arg(layer);
 	if (_tlv) {
 		_tlv->moveTo(uri);
 		return;
