@@ -37,6 +37,7 @@
 #include "styles/style_ayu_icons.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
+#include "ui/boxes/choose_date_time.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
@@ -49,7 +50,25 @@ namespace AyuUi {
 
 namespace {
 
-void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
+TimeId DeleteOwnMessagesMinStart() {
+	return base::unixtime::serialize(
+		QDateTime(QDate(2013, 8, 1), QTime(0, 0), Qt::UTC));
+}
+
+TimeId DeleteOwnMessagesMaxNow() {
+	return base::unixtime::now();
+}
+
+TimeId DeleteOwnMessagesDefaultStart() {
+	const auto candidate = base::unixtime::serialize(
+		QDateTime(QDate::currentDate().addDays(-1), QTime(0, 0), Qt::LocalTime));
+	return std::max(DeleteOwnMessagesMinStart(), std::min(candidate, DeleteOwnMessagesMaxNow()));
+}
+
+void DeleteMyMessagesAfterConfirm(
+		not_null<PeerData*> peer,
+		int minDate,
+		int maxDate) {
 	const auto session = &peer->session();
 
 	auto collected = std::make_shared<std::vector<MsgId>>();
@@ -122,9 +141,9 @@ void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 			MTP_int(0),
 			// top_msg_id
 			MTP_inputMessagesFilterEmpty(),
-			MTP_int(0),
+			MTP_int(minDate),
 			// min_date
-			MTP_int(0),
+			MTP_int(maxDate),
 			// max_date
 			MTP_int(from.bare),
 			MTP_int(0),
@@ -166,20 +185,87 @@ void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controller, not_null<PeerData*> peer) {
 	return [=]
 	{
-		if (!controller->showFrozenError()) {
-			controller->show(Ui::MakeConfirmBox({
-				.text = tr::ayu_DeleteOwnMessagesConfirmation(tr::now),
-				.confirmed =
-				[=](Fn<void()> &&close)
-				{
-					DeleteMyMessagesAfterConfirm(peer);
-					close();
-				},
-				.confirmText = tr::lng_box_delete(),
-				.cancelText = tr::lng_cancel(),
-				.confirmStyle = &st::attentionBoxButton,
-			}));
+		if (controller->showFrozenError()) {
+			return;
 		}
+
+		const auto showEnd = [=](TimeId start) {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				Ui::ChooseDateTimeBoxArgs args;
+				args.title = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesEndTitle"),
+					QString("End time")));
+				args.submit = tr::lng_box_delete();
+				args.done = [=](TimeId end) {
+					const auto finalEnd = std::max(end, start);
+					DeleteMyMessagesAfterConfirm(peer, start, finalEnd);
+					box->closeBox();
+				};
+				args.min = [=] { return start; };
+				args.time = DeleteOwnMessagesMaxNow();
+				args.max = DeleteOwnMessagesMaxNow;
+				args.description = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesEndDesc"),
+					QString("Select the end date and time.")));
+				Ui::ChooseDateTimeBox(box, std::move(args));
+			}));
+		};
+
+		const auto showRangePicker = [=] {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				Ui::ChooseDateTimeBoxArgs args;
+				args.title = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesStartTitle"),
+					QString("Start time")));
+				args.submit = tr::lng_continue();
+				args.done = [=](TimeId start) {
+					showEnd(start);
+					box->closeBox();
+				};
+				args.min = DeleteOwnMessagesMinStart;
+				args.time = DeleteOwnMessagesDefaultStart();
+				args.max = DeleteOwnMessagesMaxNow;
+				args.description = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesStartDesc"),
+					QString("Select the start date and time.")));
+				Ui::ChooseDateTimeBox(box, std::move(args));
+			}));
+		};
+
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			box->setTitle(rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteOwnMessagesModeTitle"),
+				QString("Delete own messages"))));
+			box->addButton(
+				rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesModeAll"),
+					QString("Delete all"))),
+				[=] {
+					controller->show(Ui::MakeConfirmBox({
+						.text = rpl::single(AyuHantHelper(
+							qsl("ayu_DeleteOwnMessagesConfirmation"),
+							QString("Are you sure you want to delete all your messages from this group?"))),
+						.confirmed = [=](Fn<void()> &&close) {
+							DeleteMyMessagesAfterConfirm(
+								peer,
+								DeleteOwnMessagesMinStart(),
+								DeleteOwnMessagesMaxNow());
+							close();
+						},
+						.confirmText = tr::lng_box_delete(),
+					}));
+					box->closeBox();
+				});
+			box->addButton(
+				rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesModeRange"),
+					QString("Use time range"))),
+				[=] {
+					showRangePicker();
+					box->closeBox();
+				});
+			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+		}));
 	};
 }
 
