@@ -25,11 +25,11 @@
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/toast/toast.h"
 #include "ayu/ui/settings/ayu_hant_helper.h"
 #include <QtGui/QClipboard>
 #include <QtCore/QDateTime>
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
+#include <algorithm>
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "window/window_peer_menu.h"
 
@@ -53,7 +53,6 @@
 #include "window/window_session_controller.h"
 #include "api/api_sending.h"
 #include "ui/layers/generic_box.h"
-#include "ayu/ui/boxes/json_viewer_box.h"
 
 namespace AyuUi {
 
@@ -63,6 +62,20 @@ bool needToShowItem(int state) {
 
 namespace {
 
+TimeId DeleteOwnMessagesMinStart() {
+	return base::unixtime::serialize(
+		QDateTime(QDate(2013, 8, 1), QTime(0, 0), Qt::UTC));
+}
+
+TimeId DeleteOwnMessagesMaxNow() {
+	return base::unixtime::now();
+}
+
+TimeId DeleteOwnMessagesDefaultStart() {
+	const auto candidate = base::unixtime::serialize(
+		QDateTime(QDate::currentDate().addDays(-1), QTime(0, 0), Qt::LocalTime));
+	return std::max(DeleteOwnMessagesMinStart(), std::min(candidate, DeleteOwnMessagesMaxNow()));
+}
 
 void DeleteMyMessagesAfterConfirm(
 		not_null<PeerData*> peer,
@@ -188,14 +201,6 @@ Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controll
 			return;
 		}
 
-		const auto minStart = [] {
-			return base::unixtime::serialize(
-				QDateTime(QDate(2013, 8, 1), QTime(0, 0), Qt::UTC));
-		};
-		const auto maxNow = [] {
-			return base::unixtime::now();
-		};
-
 		const auto showEnd = [=](TimeId start) {
 			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
 				Ui::ChooseDateTimeBoxArgs args;
@@ -209,8 +214,8 @@ Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controll
 					box->closeBox();
 				};
 				args.min = [=] { return start; };
-				args.time = start;
-				args.max = maxNow;
+				args.time = DeleteOwnMessagesMaxNow();
+				args.max = DeleteOwnMessagesMaxNow;
 				args.description = rpl::single(AyuHantHelper(
 					qsl("ayu_DeleteOwnMessagesEndDesc"),
 					QString("Select the end date and time.")));
@@ -218,23 +223,60 @@ Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controll
 			}));
 		};
 
+		const auto showRangePicker = [=] {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				Ui::ChooseDateTimeBoxArgs args;
+				args.title = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesStartTitle"),
+					QString("Start time")));
+				args.submit = tr::lng_continue();
+				args.done = [=](TimeId start) {
+					showEnd(start);
+					box->closeBox();
+				};
+				args.min = DeleteOwnMessagesMinStart;
+				args.time = DeleteOwnMessagesDefaultStart();
+				args.max = DeleteOwnMessagesMaxNow;
+				args.description = rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesStartDesc"),
+					QString("Select the start date and time.")));
+				Ui::ChooseDateTimeBox(box, std::move(args));
+			}));
+		};
+
 		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
-			Ui::ChooseDateTimeBoxArgs args;
-			args.title = rpl::single(AyuHantHelper(
-				qsl("ayu_DeleteOwnMessagesStartTitle"),
-				QString("Start time")));
-			args.submit = tr::lng_continue();
-			args.done = [=](TimeId start) {
-				showEnd(start);
-				box->closeBox();
-			};
-			args.min = minStart;
-			args.time = maxNow();
-			args.max = maxNow;
-			args.description = rpl::single(AyuHantHelper(
-				qsl("ayu_DeleteOwnMessagesStartDesc"),
-				QString("Select the start date and time.")));
-			Ui::ChooseDateTimeBox(box, std::move(args));
+			box->setTitle(rpl::single(AyuHantHelper(
+				qsl("ayu_DeleteOwnMessagesModeTitle"),
+				QString("Delete own messages"))));
+			box->addButton(
+				rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesModeAll"),
+					QString("Delete all"))),
+				[=] {
+					controller->show(Ui::MakeConfirmBox({
+						.text = rpl::single(AyuHantHelper(
+							qsl("ayu_DeleteOwnMessagesConfirmation"),
+							QString("Are you sure you want to delete all your messages from this group?"))),
+						.confirmed = [=](Fn<void()> &&close) {
+							DeleteMyMessagesAfterConfirm(
+								peer,
+								DeleteOwnMessagesMinStart(),
+								DeleteOwnMessagesMaxNow());
+							close();
+						},
+						.confirmText = tr::lng_box_delete(),
+					}));
+					box->closeBox();
+				});
+			box->addButton(
+				rpl::single(AyuHantHelper(
+					qsl("ayu_DeleteOwnMessagesModeRange"),
+					QString("Use time range"))),
+				[=] {
+					showRangePicker();
+					box->closeBox();
+				});
+			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 		}));
 	};
 }
@@ -671,37 +713,13 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, H
 		menu->addAction(
 			AyuHantHelper(qsl("ayu_MessageDetailsViewJson"), qsl("View JSON Data")),
 			[=] {
-				auto json = QJsonObject();
-				json.insert(qsl("id"), QString::number(item->id.bare));
-				json.insert(qsl("peer_id"), QString::number(qulonglong(item->history()->peer->id.value)));
-				json.insert(qsl("date"), int(item->date()));
-				json.insert(qsl("out"), item->out());
-				json.insert(qsl("views"), item->hasViews() ? item->viewsCount() : 0);
-				json.insert(qsl("text"), item->originalText().text);
-				json.insert(qsl("has_media"), media != nullptr);
-				json.insert(qsl("media_mime"), mediaMime);
-				json.insert(qsl("media_name"), mediaName);
-				json.insert(qsl("media_size"), mediaSize);
-				json.insert(qsl("media_resolution"), mediaResolution);
-				json.insert(qsl("media_datacenter"), mediaDC);
-				const auto payload = QString::fromUtf8(
-					QJsonDocument(json).toJson(QJsonDocument::Indented));
-
-				const auto showLocal = [=] {
-					if (const auto controller = item->history()->session().tryResolveWindow()) {
-						controller->show(Box([=](not_null<Ui::GenericBox*> box) {
-							Ui::FillJsonViewerBox(box, payload);
-						}));
-					}
-				};
-
 				item->history()->session().api().exportMessageAsBase64(
 					item,
 					[=](const QString &base64) {
 						Core::App().iv().showTLViewer(MTP::details::kCurrentLayer, base64);
 					},
 					[=] {
-						showLocal();
+						Ui::Toast::Show(u"error"_q);
 					});
 			},
 			&st::menuIconInfo);
@@ -985,5 +1003,3 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 }
 
 } // namespace AyuUi
-
-
