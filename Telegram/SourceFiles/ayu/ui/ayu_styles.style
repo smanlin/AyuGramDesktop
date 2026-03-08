@@ -62,6 +62,12 @@ topBarRecentActions: IconButton {
 	}
 }
 
+topBarPermissions: IconButton(topBarSearch) {
+	icon: icon {{ "menu/permissions", menuIconFg }};
+	iconOver: icon {{ "menu/permissions", menuIconFgOver }};
+	iconPosition: point(9px, 15px);
+}
+
 exteraBadgeToast: Toast(defaultToast) {
 	minWidth: 40px;
 	maxWidth: 480px;

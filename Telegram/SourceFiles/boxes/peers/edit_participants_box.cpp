@@ -110,16 +110,30 @@ void SaveChatAdmin(
 		Fn<void()> onDone,
 		Fn<void()> onFail,
 		bool retryOnNotParticipant = true) {
+	LOG(("AyuGram SaveChatAdmin: chat=%1 user=%2 isAdmin=%3 retry=%4")
+		.arg(chat->id.value)
+		.arg(user->id.value)
+		.arg(int(isAdmin))
+		.arg(int(retryOnNotParticipant)));
 	chat->session().api().request(MTPmessages_EditChatAdmin(
 		chat->inputChat(),
 		user->inputUser(),
 		MTP_bool(isAdmin)
 	)).done([=] {
+		LOG(("AyuGram SaveChatAdmin done: chat=%1 user=%2 isAdmin=%3")
+			.arg(chat->id.value)
+			.arg(user->id.value)
+			.arg(int(isAdmin)));
 		chat->applyEditAdmin(user, isAdmin);
 		if (onDone) {
 			onDone();
 		}
 	}).fail([=](const MTP::Error &error) {
+		LOG(("AyuGram SaveChatAdmin fail: chat=%1 user=%2 isAdmin=%3 error=%4")
+			.arg(chat->id.value)
+			.arg(user->id.value)
+			.arg(int(isAdmin))
+			.arg(error.type()));
 		const auto &type = error.type();
 		if (retryOnNotParticipant
 			&& isAdmin
@@ -149,18 +163,31 @@ void SaveChannelAdmin(
 		const QString &rank,
 		Fn<void()> onDone,
 		Fn<void()> onFail) {
+	LOG(("AyuGram SaveChannelAdmin: channel=%1 user=%2 old=0x%3 new=0x%4 rank=%5")
+		.arg(channel->id.value)
+		.arg(user->id.value)
+		.arg(QString::number(oldRights.flags.value(), 16))
+		.arg(QString::number(newRights.flags.value(), 16))
+		.arg(rank));
 	channel->session().api().request(MTPchannels_EditAdmin(
 		channel->inputChannel(),
 		user->inputUser(),
 		AdminRightsToMTP(newRights),
 		MTP_string(rank)
 	)).done([=](const MTPUpdates &result) {
+		LOG(("AyuGram SaveChannelAdmin done: channel=%1 user=%2")
+			.arg(channel->id.value)
+			.arg(user->id.value));
 		channel->session().api().applyUpdates(result);
 		channel->applyEditAdmin(user, oldRights, newRights, rank);
 		if (onDone) {
 			onDone();
 		}
 	}).fail([=](const MTP::Error &error) {
+		LOG(("AyuGram SaveChannelAdmin fail: channel=%1 user=%2 error=%3")
+			.arg(channel->id.value)
+			.arg(user->id.value)
+			.arg(error.type()));
 		ShowAddParticipantsError(show, error.type(), channel, user);
 		if (onFail) {
 			onFail();

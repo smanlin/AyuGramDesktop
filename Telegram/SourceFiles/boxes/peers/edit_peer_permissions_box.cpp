@@ -98,7 +98,7 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
 	second.push_back({
-		options.isForum ? Flag::CreateTopics : Flag::EditOwnTags,
+		Flag::CreateTopics,
 		options.isForum
 			? tr::lng_rights_group_add_topics(tr::now)
 			: tr::lng_rights_group_edit_own_tags(tr::now),

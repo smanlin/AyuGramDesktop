@@ -74,6 +74,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/ayu_settings.h"
 #include "boxes/peers/edit_participants_box.h"
+#include "boxes/peers/edit_peer_info_box.h"
 #include "data/data_chat_filters.h"
 #include "history/admin_log/history_admin_log_section.h"
 #include "styles/style_ayu_styles.h"
@@ -142,6 +143,7 @@ TopBarWidget::TopBarWidget(
 , _menuToggle(this, st::topBarMenuToggle)
 , _recentActions(this, st::topBarRecentActions)
 , _admins(this, st::topBarAdmins)
+, _permissions(this, st::topBarPermissions)
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
@@ -183,6 +185,11 @@ TopBarWidget::TopBarWidget(
 			_activeChat.key.peer(),
 			ParticipantsBoxController::Role::Admins
 		);
+	});
+	_permissions->setClickedCallback([=] {
+		if (const auto peer = _activeChat.key.peer()) {
+			ShowEditChatPermissions(_controller, peer);
+		}
 	});
 
 	_back->setAcceptBoth();
@@ -1162,6 +1169,10 @@ void TopBarWidget::updateControlsGeometry() {
 	if (!_admins->isHidden()) {
 		_rightTaken += _admins->width();
 	}
+	_permissions->moveToRight(_rightTaken, otherButtonsTop);
+	if (!_permissions->isHidden()) {
+		_rightTaken += _permissions->width();
+	}
 
 	_search->moveToRight(_rightTaken, otherButtonsTop);
 	if (!_search->isHidden()) {
@@ -1325,6 +1336,16 @@ void TopBarWidget::updateControlsVisibility() {
 		return false;
 	}();
 	_admins->setVisible(showAdmins);
+	const auto showPermissions = [&] {
+		if (_activeChat.section != Section::History || _chooseForReportReason) {
+			return false;
+		}
+		if (const auto peer = _activeChat.key.peer()) {
+			return peer->isChat() || peer->isMegagroup();
+		}
+		return false;
+	}();
+	_permissions->setVisible(showPermissions);
 
 	const auto callsEnabled = [&] {
 		if (const auto peer = _activeChat.key.peer()) {
