@@ -1033,7 +1033,8 @@ void AddSelectionAction(
 		const ContextMenuRequest &request,
 		not_null<ListWidget*> list) {
 	if (!AddClearSelectionAction(menu, request, list)) {
-		AddSelectMessageAction(menu, request, list);
+		// Commented out: Select option removed from context menu
+		// AddSelectMessageAction(menu, request, list);
 	}
 }
 
@@ -1053,9 +1054,12 @@ void AddMessageActions(
 		const ContextMenuRequest &request,
 		not_null<ListWidget*> list) {
 	if (request.item) {
+		const auto context = request.view ? request.view->context() : Context::History;
 		AyuUi::AddHistoryAction(menu, request.item);
 		AyuUi::AddHideMessageAction(menu, request.item);
 		AyuUi::AddUserMessagesAction(menu, request.item);
+		AyuUi::AddRepeatMessageAction(menu, request.item, context);
+		AyuUi::AddMessageDetailsAction(menu, request.item);
 	}
 
 	AddPostLinkAction(menu, request);
@@ -1070,8 +1074,6 @@ void AddMessageActions(
 	if (request.item) {
 		AyuUi::AddReadUntilAction(menu, request.item);
 		AyuUi::AddBurnAction(menu, request.item);
-		const auto context = request.view ? request.view->context() : Context::History;
-		AyuUi::AddMessageDetailsAction(menu, request.item, context);
 	}
 }
 

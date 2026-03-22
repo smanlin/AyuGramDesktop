@@ -14,9 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace AdminLog {
 
-EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
-		bool isChannel,
-		bool isForum) {
+EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(bool isChannel) {
 	using Label = EditFlagsLabel<FilterValue::Flags>;
 	using Flag = FilterValue::Flag;
 
@@ -34,18 +32,13 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
 		? tr::lng_admin_log_filter_subscribers_removed
 		: tr::lng_admin_log_filter_members_removed)(tr::now);
 
-		auto members = std::vector<Label>{
-			{ adminRights, tr::lng_admin_log_filter_admins_new(tr::now) },
-			{ restrictions, tr::lng_admin_log_filter_restrictions(tr::now) },
-			{ membersNew, std::move(membersNewText) },
-			{ membersRemoved, std::move(membersRemovedText) },
-		};
-		if (!isChannel && !isForum) {
-			members.push_back({
-				Flag::MemberTags,
-				tr::lng_admin_log_filter_members_tag_updates(tr::now),
-			});
-		}
+	auto members = std::vector<Label>{
+		{ adminRights, tr::lng_admin_log_filter_admins_new(tr::now) },
+		{ Flag::EditRank, tr::lng_admin_log_filter_edit_rank(tr::now) },
+		{ restrictions, tr::lng_admin_log_filter_restrictions(tr::now) },
+		{ membersNew, std::move(membersNewText) },
+		{ membersRemoved, std::move(membersRemovedText) },
+	};
 
 	const auto info = Flag::Info | Flag::Settings;
 	const auto invites = Flag::Invites;
@@ -69,7 +62,7 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
 			tr::lng_admin_log_filter_sub_extend(tr::now),
 		},
 	};
-	if (!isChannel && isForum) {
+	if (!isChannel) {
 		settings.push_back({
 			Flag::Topics,
 			tr::lng_admin_log_filter_topics(tr::now),
@@ -111,13 +104,11 @@ EditFlagsDescriptor<FilterValue::Flags> FilterValueLabels(
 Fn<FilterValue::Flags()> FillFilterValueList(
 		not_null<Ui::VerticalLayout*> container,
 		bool isChannel,
-		bool isForum,
 		const FilterValue &filter) {
-	auto [checkboxes, getResult, changes] = CreateEditAdminLogFilter(
+	auto [checkboxes, getResult, changes, highlightWidget] = CreateEditAdminLogFilter(
 		container,
 		filter.flags ? (*filter.flags) : ~FilterValue::Flags(0),
-		isChannel,
-		isForum);
+		isChannel);
 	container->add(std::move(checkboxes));
 	return getResult;
 }

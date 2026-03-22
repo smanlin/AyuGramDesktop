@@ -1290,27 +1290,11 @@ void Element::checkSpecialOnlyEmoji() {
 }
 
 void Element::hideSpoilers() {
-	const auto &settings = AyuSettings::getInstance();
 	if (_text.hasSpoilers()) {
-		_text.setSpoilerRevealed(
-			settings.alwaysShowSpoilerText,
-			anim::type::instant);
+		_text.setSpoilerRevealed(false, anim::type::instant);
 	}
 	if (_media) {
-		if (settings.alwaysShowSpoilerMedia) {
-			_media->revealSpoilers();
-		} else {
-			_media->hideSpoilers();
-		}
-	}
-}
-
-void Element::revealSpoilers() {
-	if (_text.hasSpoilers()) {
-		_text.setSpoilerRevealed(true, anim::type::instant);
-	}
-	if (_media) {
-		_media->revealSpoilers();
+		_media->hideSpoilers();
 	}
 }
 
@@ -1601,18 +1585,6 @@ void Element::refreshMedia(Element *replacing) {
 	}
 	_flags &= ~Flag::HiddenByGroup;
 
-	const auto applySpoilerPolicy = [this] {
-		if (!_media) {
-			return;
-		}
-		const auto &settings = AyuSettings::getInstance();
-		if (settings.alwaysShowSpoilerMedia) {
-			_media->revealSpoilers();
-		} else {
-			_media->hideSpoilers();
-		}
-	};
-
 	const auto item = data();
 	if (!item->computeUnavailableReason().isEmpty()) {
 		_media = nullptr;
@@ -1628,7 +1600,6 @@ void Element::refreshMedia(Element *replacing) {
 					_media = std::make_unique<GroupedMedia>(
 						this,
 						group->items);
-					applySpoilerPolicy();
 					if (!pendingResize()) {
 						history()->owner().requestViewResize(this);
 					}
@@ -1690,7 +1661,6 @@ void Element::refreshMedia(Element *replacing) {
 	} else {
 		_media = nullptr;
 	}
-	applySpoilerPolicy();
 }
 
 HistoryItem *Element::textItem() const {
@@ -3247,4 +3217,3 @@ TextSelection FindSearchQueryHighlight(
 }
 
 } // namespace HistoryView
-

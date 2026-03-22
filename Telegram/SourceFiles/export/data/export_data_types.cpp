@@ -1202,7 +1202,7 @@ Chat ParseChat(const MTPChat &data) {
 			}, [](const MTPDinputPeerColorCollectible &) {
 			});
 		}
-		result.isMonoforum = data.is_monoforum();
+			result.isMonoforum = false;
 		result.isBroadcast = data.is_broadcast();
 		result.isSupergroup = data.is_megagroup();
 		result.hasMonoforumAdminRights = data.is_broadcast()
@@ -1222,7 +1222,7 @@ Chat ParseChat(const MTPChat &data) {
 		result.bareId = data.vid().v;
 		result.isBroadcast = data.is_broadcast();
 		result.isSupergroup = data.is_megagroup();
-		result.isMonoforum = data.is_monoforum();
+			result.isMonoforum = false;
 		result.title = ParseString(data.vtitle());
 		result.input = MTP_inputPeerChannel(
 			MTP_long(result.bareId),

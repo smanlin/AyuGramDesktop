@@ -308,18 +308,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 			_animation->radial.start(_dataMedia->progress());
 		}
 	}
-	const auto radial = isRadialAnimation();
-	const auto drawSpoilerOutline = [&](const QRect &rect) {
-		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
-			return;
-		}
-		auto hq = PainterHighQualityEnabler(p);
-		auto pen = QPen(QColor(95, 193, 255, 220));
-		pen.setWidth(2);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRect(rect.adjusted(1, 1, -1, -1));
-	};
+		const auto radial = isRadialAnimation();
 
 	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	if (_serviceWidth > 0) {
@@ -407,8 +396,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		p.drawRoundedRect(rect, radius, radius);
 		sti->historyPageEnlarge.paintInCenter(p, rect);
 	}
-	drawSpoilerOutline(rthumb);
-	if (_purchasedPriceTag) {
+		if (_purchasedPriceTag) {
 		auto geometry = rthumb;
 		if (showEnlarge) {
 			const auto rect = enlargeRect();
@@ -759,18 +747,7 @@ void Photo::drawGrouped(
 			_animation->radial.start(_dataMedia->progress());
 		}
 	}
-	const auto radial = isRadialAnimation();
-	const auto drawSpoilerOutline = [&](const QRect &rect) {
-		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
-			return;
-		}
-		auto hq = PainterHighQualityEnabler(p);
-		auto pen = QPen(QColor(95, 193, 255, 220));
-		pen.setWidth(2);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRect(rect.adjusted(1, 1, -1, -1));
-	};
+		const auto radial = isRadialAnimation();
 
 	const auto revealed = _spoiler
 		? _spoiler->revealAnimation.value(_spoiler->revealed ? 1. : 0.)
@@ -857,8 +834,7 @@ void Photo::drawGrouped(
 			_animation->radial.draw(p, rinner, line, sti->historyFileThumbRadialFg);
 		}
 	}
-	drawSpoilerOutline(geometry);
-}
+	}
 
 TextState Photo::getStateGrouped(
 		const QRect &geometry,
@@ -1142,7 +1118,6 @@ void Photo::showPhoto(FullMsgId id) {
 }
 
 } // namespace HistoryView
-
 
 
 

@@ -126,8 +126,7 @@ using AdminRightLabel = EditFlagsLabel<ChatAdminRights>;
 [[nodiscard]] auto CreateEditAdminLogFilter(
 	QWidget *parent,
 	AdminLog::FilterValue::Flags flags,
-	bool isChannel,
-	bool isForum
+	bool isChannel
 ) -> EditFlagsControl<AdminLog::FilterValue::Flags>;
 
 [[nodiscard]] auto CreateEditChatbotPermissions(

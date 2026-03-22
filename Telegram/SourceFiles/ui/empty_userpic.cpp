@@ -357,7 +357,7 @@ void EmptyUserpic::paintRounded(
 		int size,
 		int radius) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		if (AyuSettings::getInstance().singleCornerRadius()) {
+			if (AyuSettings::getInstance().singleCornerRadius()) {
 			AyuUserpic::PaintShape(p, x, y, size);
 		} else {
 			p.drawRoundedRect(x, y, size, size, radius, radius);
@@ -383,7 +383,7 @@ void EmptyUserpic::paintMonoforum(
 		int outerWidth,
 		int size) const {
 	paint(p, x, y, outerWidth, size, [&] {
-		if (AyuSettings::getInstance().singleCornerRadius()) {
+			if (AyuSettings::getInstance().singleCornerRadius()) {
 			AyuUserpic::PaintShape(p, x, y, size);
 		} else {
 			PaintMonoforumShape(p, QRect(x, y, size, size));

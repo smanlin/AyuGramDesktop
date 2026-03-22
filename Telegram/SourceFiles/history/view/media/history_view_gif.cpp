@@ -477,18 +477,6 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 	if (rtl()) usex = width() - usex - usew;
 
 	QRect rthumb(style::rtlrect(usex + paintx, painty, usew, painth, width()));
-	const auto drawSpoilerOutline = [&](const QRect &rect) {
-		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
-			return;
-		}
-		auto hq = PainterHighQualityEnabler(p);
-		auto pen = QPen(QColor(95, 193, 255, 220));
-		pen.setWidth(2);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRect(rect.adjusted(1, 1, -1, -1));
-	};
-
 	const auto inTTLViewer = _parent->delegate()->elementContext()
 		== Context::TTLViewer;
 	const auto revealed = (isRound
@@ -887,7 +875,6 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 			paintTranscribe(p, usex, fullBottom, false, context);
 		}
 	}
-	drawSpoilerOutline(rthumb);
 	if (_drawTtl) {
 		_drawTtl(p, rthumb, context);
 	}
@@ -1420,17 +1407,6 @@ void Gif::drawGrouped(
 	const auto sti = context.imageStyle();
 	_smallGroupPart = !fullFeaturedGrouped(sides);
 	const auto cornerDownload = !_smallGroupPart && downloadInCorner();
-	const auto drawSpoilerOutline = [&](const QRect &rect) {
-		if (!_spoiler || !AyuSettings::getInstance().alwaysShowSpoilerMedia) {
-			return;
-		}
-		auto hq = PainterHighQualityEnabler(p);
-		auto pen = QPen(QColor(95, 193, 255, 220));
-		pen.setWidth(2);
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		p.drawRect(rect.adjusted(1, 1, -1, -1));
-	};
 	const auto canBePlayed = _dataMedia->canBePlayed(_realParent);
 
 	const auto revealed = _spoiler
@@ -1626,7 +1602,6 @@ void Gif::drawGrouped(
 		}
 		p.setOpacity(1.);
 	}
-	drawSpoilerOutline(geometry);
 	if (!_smallGroupPart) {
 		drawCornerStatus(p, context, geometry.topLeft());
 	}
@@ -2258,6 +2233,5 @@ void Gif::ensureTranscribeButton() const {
 }
 
 } // namespace HistoryView
-
 
 

@@ -85,10 +85,10 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
 		{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
 		{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
-		{ Flag::SendStickers, tr::lng_admin_log_banned_send_stickers2(tr::now) },
-		{ Flag::SendGifs, tr::lng_admin_log_banned_send_gifs(tr::now) },
-		{ Flag::SendInline, tr::lng_admin_log_banned_use_inline(tr::now) },
-		{ Flag::SendGames, tr::lng_admin_log_banned_send_games(tr::now) },
+		{ Flag::SendStickers, tr::lng_rights_chat_send_stickers(tr::now) },
+		{ Flag::SendGifs, tr::lng_rights_chat_send_stickers(tr::now) },
+		{ Flag::SendInline, tr::lng_rights_chat_send_stickers(tr::now) },
+		{ Flag::SendGames, tr::lng_rights_chat_send_stickers(tr::now) },
 		{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
 		{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
 	};
@@ -97,12 +97,12 @@ constexpr auto kDefaultChargeStars = 10;
 		{ Flag::PinMessages, tr::lng_rights_group_pin(tr::now) },
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
-	second.push_back({
-		options.isForum ? Flag::CreateTopics : Flag::EditOwnTags,
-		options.isForum
-			? tr::lng_rights_group_add_topics(tr::now)
-			: tr::lng_rights_group_edit_own_tags(tr::now),
-	});
+	if (options.isForum) {
+		second.push_back({
+			Flag::CreateTopics,
+			tr::lng_rights_group_add_topics(tr::now),
+		});
+	}
 	return {
 		{ std::nullopt, std::move(first) },
 		{ tr::lng_rights_chat_send_media(), std::move(media) },
@@ -288,7 +288,6 @@ ChatRestrictions NegateRestrictions(ChatRestrictions value) {
 		| Flag::EmbedLinks
 		| Flag::AddParticipants
 		| Flag::CreateTopics
-		| Flag::EditOwnTags
 		| Flag::PinMessages
 		| Flag::SendGames
 		| Flag::SendGifs
@@ -1152,7 +1151,7 @@ void ShowEditPeerPermissionsBox(
 	Ui::AddSubsectionTitle(
 		inner,
 		tr::lng_rights_default_restrictions_header());
-	auto [checkboxes, getRestrictions, changes] = CreateEditRestrictions(
+	auto [checkboxes, getRestrictions, changes, highlightWidget] = CreateEditRestrictions(
 		inner,
 		restrictions,
 		disabledMessages,
@@ -1473,10 +1472,12 @@ ChatAdminRights AdminRightsForOwnershipTransfer(
 EditFlagsControl<PowerSaving::Flags> CreateEditPowerSaving(
 		QWidget *parent,
 		PowerSaving::Flags flags,
-		rpl::producer<QString> forceDisabledMessage) {
+		rpl::producer<QString> forceDisabledMessage,
+		PowerSaving::Flags highlightFlags) {
 	auto widget = object_ptr<Ui::VerticalLayout>(parent);
 	auto descriptor = Settings::PowerSavingLabels();
 	descriptor.forceDisabledMessage = std::move(forceDisabledMessage);
+	descriptor.highlightFlags = highlightFlags;
 	auto result = CreateEditFlags(
 		widget.data(),
 		flags,
@@ -1489,10 +1490,9 @@ EditFlagsControl<PowerSaving::Flags> CreateEditPowerSaving(
 EditFlagsControl<AdminLog::FilterValue::Flags> CreateEditAdminLogFilter(
 		QWidget *parent,
 		AdminLog::FilterValue::Flags flags,
-		bool isChannel,
-		bool isForum) {
+		bool isChannel) {
 	auto widget = object_ptr<Ui::VerticalLayout>(parent);
-	auto descriptor = AdminLog::FilterValueLabels(isChannel, isForum);
+	auto descriptor = AdminLog::FilterValueLabels(isChannel);
 	auto result = CreateEditFlags(
 		widget.data(),
 		flags,
@@ -1518,4 +1518,3 @@ EditFlagsControl<Data::ChatbotsPermissions> CreateEditChatbotPermissions(
 
 	return result;
 }
-

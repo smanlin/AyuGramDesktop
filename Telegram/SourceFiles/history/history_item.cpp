@@ -6849,7 +6849,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 
 	auto prepareNewCreatorPending = [this](const MTPDmessageActionNewCreatorPending &action) {
 		auto result = PreparedServiceText();
-		auto user = _history->owner().user(action.vnew_creator_id().v);
+			auto user = _history->owner().user(action.vnew_creator_id().v);
 		result.links.push_back(fromLink());
 		result.links.push_back(user->createOpenLink());
 		result.text = tr::lng_action_new_creator_pending(
@@ -6864,7 +6864,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 
 	auto prepareChangeCreator = [this](const MTPDmessageActionChangeCreator &action) {
 		auto result = PreparedServiceText();
-		auto user = _history->owner().user(action.vnew_creator_id().v);
+			auto user = _history->owner().user(action.vnew_creator_id().v);
 		result.links.push_back(fromLink());
 		result.links.push_back(user->createOpenLink());
 		result.text = tr::lng_action_change_creator(
@@ -6879,8 +6879,8 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 
 	auto prepareNoForwardsToggle = [this](const MTPDmessageActionNoForwardsToggle &action) {
 		auto result = PreparedServiceText();
-		const auto enabled = mtpIsTrue(action.vnew_value());
-		const auto prevEnabled = mtpIsTrue(action.vprev_value());
+			const auto enabled = mtpIsTrue(action.vnew_value());
+			const auto prevEnabled = mtpIsTrue(action.vprev_value());
 		if (enabled == prevEnabled) {
 			result.text = tr::lng_action_no_forwards_still_disabled(
 				tr::now,

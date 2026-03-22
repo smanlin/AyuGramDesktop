@@ -263,7 +263,7 @@ void HiddenUrlClickHandler::Open(QString url, QVariant context) {
 		const auto parsedUrl = url.startsWith(u"tonsite://"_q)
 			? QUrl(url)
 			: QUrl::fromUserInput(url);
-		if (!AyuSettings::getInstance().disableOpenLinkWarning && UrlRequiresConfirmation(parsedUrl) && !base::IsCtrlPressed()) {
+			if (!AyuSettings::getInstance().disableOpenLinkWarning() && UrlRequiresConfirmation(parsedUrl) && !base::IsCtrlPressed()) {
 			const auto my = context.value<ClickHandlerContext>();
 			if (!my.show) {
 				Core::App().hideMediaView();

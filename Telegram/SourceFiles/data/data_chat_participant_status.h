@@ -37,6 +37,7 @@ enum class ChatAdminRight {
 	EditStories = (1 << 15),
 	DeleteStories = (1 << 16),
 	ManageDirect = (1 << 17),
+	ManageRanks = (1 << 18),
 };
 inline constexpr bool is_flag_type(ChatAdminRight) { return true; }
 using ChatAdminRights = base::flags<ChatAdminRight>;
@@ -63,7 +64,7 @@ enum class ChatRestriction {
 	AddParticipants = (1 << 15),
 	PinMessages = (1 << 17),
 	CreateTopics = (1 << 18),
-	EditOwnTags = (1 << 26),
+	EditRank = (1 << 26),
 };
 inline constexpr bool is_flag_type(ChatRestriction) { return true; }
 using ChatRestrictions = base::flags<ChatRestriction>;
@@ -106,6 +107,7 @@ struct AdminRightsSetOptions {
 
 struct RestrictionsSetOptions {
 	bool isForum = false;
+	bool isUserSpecific = false;
 };
 
 [[nodiscard]] std::vector<ChatRestrictions> ListOfRestrictions(

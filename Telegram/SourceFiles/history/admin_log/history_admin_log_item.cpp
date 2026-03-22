@@ -166,12 +166,13 @@ MTPMessage PrepareLogMessage(const MTPMessage &message, TimeId newDate) {
 			| Flag::f_factcheck
 			| Flag::f_report_delivery_until_date
 			| Flag::f_suggested_post;
-		return MTP_message(
-			MTP_flags(data.vflags().v & ~removeFlags),
-			data.vid(),
-			data.vfrom_id() ? *data.vfrom_id() : MTPPeer(),
-			MTPint(), // from_boosts_applied
-			data.vpeer_id(),
+			return MTP_message(
+				MTP_flags(data.vflags().v & ~removeFlags),
+				data.vid(),
+				data.vfrom_id() ? *data.vfrom_id() : MTPPeer(),
+				MTPint(), // from_boosts_applied
+				MTPstring(), // from_rank
+				data.vpeer_id(),
 			MTPPeer(), // saved_peer_id
 			data.vfwd_from() ? *data.vfwd_from() : MTPMessageFwdHeader(),
 			MTP_long(data.vvia_bot_id().value_or_empty()),
@@ -196,11 +197,12 @@ MTPMessage PrepareLogMessage(const MTPMessage &message, TimeId newDate) {
 			MTPint(), // quick_reply_shortcut_id
 			MTP_long(data.veffect().value_or_empty()),
 			MTPFactCheck(),
-			MTPint(), // report_delivery_until_date
-			MTP_long(data.vpaid_message_stars().value_or_empty()),
-			MTPSuggestedPost(),
-			MTPint()); // schedule_repeat_period
-	});
+				MTPint(), // report_delivery_until_date
+				MTP_long(data.vpaid_message_stars().value_or_empty()),
+				MTPSuggestedPost(),
+				MTPint(), // schedule_repeat_period
+				MTPstring()); // summary_from_language
+		});
 }
 
 bool MediaCanHaveCaption(const MTPMessage &message) {
@@ -326,43 +328,18 @@ QString GeneratePermissionsChangeText(
 		{
 			Flag::SendVideoMessages,
 			tr::lng_admin_log_banned_send_video_messages },
-		{ Flag::SendStickers, tr::lng_admin_log_banned_send_stickers2 },
-		{ Flag::SendGifs, tr::lng_admin_log_banned_send_gifs },
-		{ Flag::SendInline, tr::lng_admin_log_banned_use_inline },
-		{ Flag::SendGames, tr::lng_admin_log_banned_send_games },
+		{ Flag::SendStickers, tr::lng_admin_log_banned_send_stickers },
+		{ Flag::SendGifs, tr::lng_admin_log_banned_send_stickers },
+		{ Flag::SendInline, tr::lng_admin_log_banned_send_stickers },
+		{ Flag::SendGames, tr::lng_admin_log_banned_send_stickers },
 		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links },
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },
 		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics },
-		{ Flag::EditOwnTags, tr::lng_admin_log_banned_member_tags_updates },
 		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
 	};
 	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
-}
-
-std::optional<bool> MemberTagsBanned(const MTPChatBannedRights &rights) {
-	return rights.match([](const MTPDchatBannedRights &data)
-	-> std::optional<bool> {
-		return data.is_member_tags();
-	});
-}
-
-std::optional<uint32> RawBannedRightsFlags(const MTPChatBannedRights &rights) {
-	return rights.match([](const MTPDchatBannedRights &data)
-	-> std::optional<uint32> {
-		return uint32(data.vflags().v);
-	});
-}
-
-std::optional<bool> ParticipantMemberTagsBanned(
-		const MTPChannelParticipant &participant) {
-	return participant.match([](const MTPDchannelParticipantBanned &data)
-	-> std::optional<bool> {
-		return MemberTagsBanned(data.vbanned_rights());
-	}, [](const auto &) -> std::optional<bool> {
-		return std::nullopt;
-	});
 }
 
 std::optional<ChatRestrictionsInfo> ParticipantRestrictionsInfo(
@@ -371,16 +348,6 @@ std::optional<ChatRestrictionsInfo> ParticipantRestrictionsInfo(
 	-> std::optional<ChatRestrictionsInfo> {
 		return ChatRestrictionsInfo(data.vbanned_rights());
 	}, [](const auto &) -> std::optional<ChatRestrictionsInfo> {
-		return std::nullopt;
-	});
-}
-
-std::optional<uint32> ParticipantRawBannedRightsFlags(
-		const MTPChannelParticipant &participant) {
-	return participant.match([](const MTPDchannelParticipantBanned &data)
-	-> std::optional<uint32> {
-		return RawBannedRightsFlags(data.vbanned_rights());
-	}, [](const auto &) -> std::optional<uint32> {
 		return std::nullopt;
 	});
 }
@@ -409,55 +376,6 @@ std::optional<uint32> ParticipantRawAdminRightsFlags(
 	}, [](const auto &) -> std::optional<uint32> {
 		return std::nullopt;
 	});
-}
-
-void DebugLogMemberTagsRights(
-		const QString &scope,
-		ChatRestrictionsInfo prevRights,
-		ChatRestrictionsInfo newRights,
-		std::optional<bool> prevMemberTags = std::nullopt,
-		std::optional<bool> newMemberTags = std::nullopt,
-		std::optional<uint32> prevRawFlags = std::nullopt,
-		std::optional<uint32> newRawFlags = std::nullopt) {
-	using Flag = ChatRestriction;
-	constexpr auto kMemberTagsBit = uint32(1) << 26;
-	const auto prevBit = bool(prevRights.flags & Flag::EditOwnTags);
-	const auto newBit = bool(newRights.flags & Flag::EditOwnTags);
-	const auto prevRawBit26 = prevRawFlags
-		? int(((*prevRawFlags) & kMemberTagsBit) != 0)
-		: -1;
-	const auto newRawBit26 = newRawFlags
-		? int(((*newRawFlags) & kMemberTagsBit) != 0)
-		: -1;
-	LOG(("AyuGram AdminLog member_tags [%1]: prev_flags=0x%2 new_flags=0x%3 prev_bit=%4 new_bit=%5 prev_raw=%6 new_raw=%7 prev_mtp_flags=0x%8 new_mtp_flags=0x%9 prev_mtp_bit26=%10 new_mtp_bit26=%11 prev_until=%12 new_until=%13")
-		.arg(scope)
-		.arg(QString::number(prevRights.flags.value(), 16))
-		.arg(QString::number(newRights.flags.value(), 16))
-		.arg(int(prevBit))
-		.arg(int(newBit))
-		.arg(prevMemberTags.has_value() ? QString::number(int(*prevMemberTags)) : QString("n/a"))
-		.arg(newMemberTags.has_value() ? QString::number(int(*newMemberTags)) : QString("n/a"))
-		.arg(prevRawFlags.has_value() ? QString::number(*prevRawFlags, 16) : QString("n/a"))
-		.arg(newRawFlags.has_value() ? QString::number(*newRawFlags, 16) : QString("n/a"))
-		.arg(prevRawBit26)
-		.arg(newRawBit26)
-		.arg(prevRights.until)
-		.arg(newRights.until));
-}
-
-void AppendMemberTagsFallback(
-		TextWithEntities &result,
-		bool wasBanned,
-		bool nowBanned) {
-	if (wasBanned == nowBanned) {
-		return;
-	}
-	const auto label = tr::lng_rights_group_edit_own_tags(tr::now);
-	if (label.isEmpty() || result.text.contains(label)) {
-		return;
-	}
-	const auto sign = nowBanned ? QChar(0x2212) : QChar('+');
-	result.text.append('\n' + (sign + label));
 }
 
 TextWithEntities GeneratePermissionsChangeText(
@@ -803,25 +721,8 @@ TextWithEntities GenerateParticipantChangeText(
 				channel))
 			: std::nullopt);
 	if (oldParticipant) {
-		const auto prevInfo = ParticipantRestrictionsInfo(*oldParticipant);
-		const auto newInfo = ParticipantRestrictionsInfo(participant);
-		const auto was = ParticipantMemberTagsBanned(*oldParticipant);
-		const auto now = ParticipantMemberTagsBanned(participant);
-		const auto prevRawFlags = ParticipantRawBannedRightsFlags(*oldParticipant);
-		const auto newRawFlags = ParticipantRawBannedRightsFlags(participant);
-		if (prevInfo && newInfo) {
-			DebugLogMemberTagsRights(
-				QString("participant_change"),
-				*prevInfo,
-				*newInfo,
-				was,
-				now,
-				prevRawFlags,
-				newRawFlags);
-		}
-		if (was && now) {
-			AppendMemberTagsFallback(result, *was, *now);
-		}
+		(void)ParticipantRestrictionsInfo(*oldParticipant);
+		(void)ParticipantRestrictionsInfo(participant);
 	}
 	return result;
 }
@@ -937,6 +838,7 @@ void GenerateItems(
 	using LogInvite = MTPDchannelAdminLogEventActionParticipantInvite;
 	using LogBan = MTPDchannelAdminLogEventActionParticipantToggleBan;
 	using LogPromote = MTPDchannelAdminLogEventActionParticipantToggleAdmin;
+	using LogEditRank = MTPDchannelAdminLogEventActionParticipantEditRank;
 	using LogSticker = MTPDchannelAdminLogEventActionChangeStickerSet;
 	using LogEmoji = MTPDchannelAdminLogEventActionChangeEmojiStickerSet;
 	using LogPreHistory
@@ -1416,6 +1318,80 @@ void GenerateItems(
 		}
 	};
 
+	const auto createParticipantEditRank = [&](const LogEditRank &action) {
+		const auto user = history->owner().user(UserId(action.vuser_id().v));
+		const auto prevRank = qs(action.vprev_rank());
+		const auto newRank = qs(action.vnew_rank());
+		if (prevRank == newRank) {
+			return;
+		}
+		const auto isSelf = (user == from);
+		const auto text = [&] {
+			if (isSelf) {
+				if (newRank.isEmpty()) {
+					return tr::lng_admin_log_removed_own_rank(
+						tr::now,
+						lt_from,
+						fromLinkText,
+						lt_previous,
+						{ prevRank },
+						tr::marked);
+				} else if (prevRank.isEmpty()) {
+					return tr::lng_admin_log_set_own_rank(
+						tr::now,
+						lt_from,
+						fromLinkText,
+						lt_tag,
+						{ newRank },
+						tr::marked);
+				}
+				return tr::lng_admin_log_changed_own_rank_from(
+					tr::now,
+					lt_from,
+					fromLinkText,
+					lt_previous,
+					{ prevRank },
+					lt_tag,
+					{ newRank },
+					tr::marked);
+			}
+			const auto userLinkText = TextWithEntities{ user->name() };
+			if (newRank.isEmpty()) {
+				return tr::lng_admin_log_removed_rank(
+					tr::now,
+					lt_from,
+					fromLinkText,
+					lt_user,
+					userLinkText,
+					lt_previous,
+					{ prevRank },
+					tr::marked);
+			} else if (prevRank.isEmpty()) {
+				return tr::lng_admin_log_set_rank(
+					tr::now,
+					lt_from,
+					fromLinkText,
+					lt_user,
+					userLinkText,
+					lt_tag,
+					{ newRank },
+					tr::marked);
+			}
+			return tr::lng_admin_log_changed_rank_from(
+				tr::now,
+				lt_from,
+				fromLinkText,
+				lt_user,
+				userLinkText,
+				lt_previous,
+				{ prevRank },
+				lt_tag,
+				{ newRank },
+				tr::marked);
+		}();
+		addSimpleServiceMessage(text);
+	};
+
 	const auto createChangeStickerSet = [&](const LogSticker &action) {
 		const auto set = action.vnew_stickerset();
 		const auto removed = (set.type() == mtpc_inputStickerSetEmpty);
@@ -1525,21 +1501,6 @@ void GenerateItems(
 			channel,
 			newRights,
 			prevRights);
-		const auto was = MemberTagsBanned(action.vprev_banned_rights());
-		const auto now = MemberTagsBanned(action.vnew_banned_rights());
-		const auto prevRawFlags = RawBannedRightsFlags(action.vprev_banned_rights());
-		const auto newRawFlags = RawBannedRightsFlags(action.vnew_banned_rights());
-		DebugLogMemberTagsRights(
-			QString("default_banned_rights"),
-			prevRights,
-			newRights,
-			was,
-			now,
-			prevRawFlags,
-			newRawFlags);
-		if (was && now) {
-			AppendMemberTagsFallback(text, *was, *now);
-		}
 		addSimpleTextMessage(std::move(text));
 	};
 
@@ -2432,10 +2393,11 @@ void GenerateItems(
 		createDeleteMessage,
 		createParticipantJoin,
 		createParticipantLeave,
-		createParticipantInvite,
-		createParticipantToggleBan,
-		createParticipantToggleAdmin,
-		createChangeStickerSet,
+			createParticipantInvite,
+			createParticipantToggleBan,
+			createParticipantToggleAdmin,
+			createParticipantEditRank,
+			createChangeStickerSet,
 		createChangeEmojiSet,
 		createTogglePreHistoryHidden,
 		createDefaultBannedRights,
