@@ -8120,6 +8120,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_SearchByIDResults" = "Found by ID";
 "ayu_ContextCopyCallbackData" = "Copy Callback Data";
 "ayu_RepeatMessage" = "Repeat Message";
+"ayu_RightsSendStickers" = "Send stickers";
+"ayu_RightsSendGifs" = "Send GIFs";
+"ayu_RightsSendInline" = "Use inline bots";
+"ayu_RightsSendGames" = "Send games";
 "ayu_RegisterURLScheme" = "Register URL Scheme";
 "ayu_PluginVersion" = "Version";
 "ayu_PluginNoDescription" = "No description provided.";
