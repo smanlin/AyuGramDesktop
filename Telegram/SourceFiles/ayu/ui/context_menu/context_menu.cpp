@@ -15,6 +15,7 @@
 #include "ayu/features/forward/ayu_forward.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 #include "ayu/ui/message_history/history_section.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/filters/edit_filter.h"
 #include "ayu/utils/qt_key_modifiers_extended.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -691,84 +692,97 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, Hi
 	const auto itemId = item->fullId();
 	const auto session = &history->session();
 
-	menu->addAction(
-		tr::ayu_RepeatMessage(tr::now),
-		[=]
-		{
-			const auto sendAs = (peer->isUser() || peer->isChat() || history->peer->isMonoforum())
-				? nullptr
-				: session->sendAsPeers().resolveChosen(peer).get();
+	const auto doRepeat = [=](bool copyMode) {
+		const auto sendAs = (peer->isUser() || peer->isChat() || history->peer->isMonoforum())
+			? nullptr
+			: session->sendAsPeers().resolveChosen(peer).get();
 
-			const auto inRepliesView = (context == HistoryView::Context::Replies);
-			const auto replyTo = item->replyTo();
-			const auto hasReply = replyTo.messageId.msg != 0;
-			const auto shiftPressed = base::IsShiftPressed();
+		const auto inRepliesView = (context == HistoryView::Context::Replies);
+		const auto replyTo = item->replyTo();
+		const auto hasReply = replyTo.messageId.msg != 0;
+		const auto shiftPressed = base::IsShiftPressed();
 
-			const auto useNoQuote = shiftPressed || inRepliesView;
-			const auto preserveReply = inRepliesView ? hasReply : (hasReply && shiftPressed);
+		const auto useNoQuote = copyMode || shiftPressed || inRepliesView;
+		const auto preserveReply = inRepliesView ? hasReply : (hasReply && shiftPressed);
 
-			const auto currentItem = history->owner().message(itemId);
-			if (!currentItem) {
-				return;
+		const auto currentItem = history->owner().message(itemId);
+		if (!currentItem) {
+			return;
+		}
+
+		auto action = Api::SendAction(
+			history,
+			Api::SendOptions{ .sendAs = sendAs });
+		action.clearDraft = false;
+
+		applyGhostScheduling(session, action.options);
+
+		if (currentItem->topic()) {
+			action.replyTo.topicRootId = currentItem->topicRootId();
+		}
+
+		if (preserveReply) {
+			action.replyTo.messageId = replyTo.messageId;
+		}
+
+		if (useNoQuote) {
+			auto message = ApiWrap::MessageToSend(action);
+			const auto media = currentItem->media();
+			if (!currentItem->originalText().text.isEmpty()) {
+				message.textWithTags = {
+					currentItem->originalText().text,
+					TextUtilities::ConvertEntitiesToTextTags(
+						currentItem->originalText().entities),
+				};
 			}
-
-			auto action = Api::SendAction(
-				history,
-				Api::SendOptions{ .sendAs = sendAs });
-			action.clearDraft = false;
-
-			applyGhostScheduling(session, action.options);
-
-			if (currentItem->topic()) {
-				action.replyTo.topicRootId = currentItem->topicRootId();
-			}
-
-			if (preserveReply) {
-				action.replyTo.messageId = replyTo.messageId;
-			}
-
-			if (useNoQuote) {
-				auto message = ApiWrap::MessageToSend(action);
-				const auto media = currentItem->media();
-				if (!currentItem->originalText().text.isEmpty()) {
-					message.textWithTags = {
-						currentItem->originalText().text,
-						TextUtilities::ConvertEntitiesToTextTags(
-							currentItem->originalText().entities),
-					};
-				}
-				if (media) {
-					if (const auto photo = media->photo()) {
-						Api::SendExistingPhoto(std::move(message), photo);
-					} else if (const auto document = media->document()) {
-						Api::SendExistingDocument(std::move(message), document);
-					}
-				} else {
-					session->api().sendMessage(std::move(message));
+			if (media) {
+				if (const auto photo = media->photo()) {
+					Api::SendExistingPhoto(std::move(message), photo);
+				} else if (const auto document = media->document()) {
+					Api::SendExistingDocument(std::move(message), document);
 				}
 			} else {
-				const auto forwardDraft = Data::ForwardDraft{
-					.ids = MessageIdsList{ itemId },
-					.options = Data::ForwardOptions::PreserveInfo,
-				};
-				auto resolvedDraft = history->resolveForwardDraft(forwardDraft);
-
-				if (AyuForward::isFullAyuForwardNeeded(currentItem)) {
-					crl::async([=]
-					{
-						AyuForward::forwardMessages(session, action, false, resolvedDraft);
-					});
-				} else if (AyuForward::isAyuForwardNeeded(currentItem)) {
-					crl::async([=]
-					{
-						AyuForward::intelligentForward(session, action, resolvedDraft);
-					});
-				} else {
-					session->api().forwardMessages(std::move(resolvedDraft), action, [] {});
-				}
+				session->api().sendMessage(std::move(message));
 			}
+		} else {
+			const auto forwardDraft = Data::ForwardDraft{
+				.ids = MessageIdsList{ itemId },
+				.options = Data::ForwardOptions::PreserveInfo,
+			};
+			auto resolvedDraft = history->resolveForwardDraft(forwardDraft);
+
+			if (AyuForward::isFullAyuForwardNeeded(currentItem)) {
+				crl::async([=]
+				{
+					AyuForward::forwardMessages(session, action, false, resolvedDraft);
+				});
+			} else if (AyuForward::isAyuForwardNeeded(currentItem)) {
+				crl::async([=]
+				{
+					AyuForward::intelligentForward(session, action, resolvedDraft);
+				});
+			} else {
+				session->api().forwardMessages(std::move(resolvedDraft), action, [] {});
+			}
+		}
+	};
+
+	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
+	callback(Window::PeerMenuCallback::Args{
+		.text = AyuHantHelper(qsl("ayu_RepeatMenuText"), tr::ayu_RepeatMessage(tr::now)),
+		.handler = nullptr,
+		.icon = &st::ayuRepeatMenuIcon,
+		.fillSubmenu = [=](not_null<Ui::PopupMenu*> submenu) {
+			submenu->addAction(
+				AyuHantHelper(qsl("ayu_RepeatForwardMenuText"), qsl("Forward-style Repeat")),
+				[=] { doRepeat(false); },
+				&st::menuIconForward);
+			submenu->addAction(
+				AyuHantHelper(qsl("ayu_RepeatCopyMenuText"), qsl("Copy-style Repeat")),
+				[=] { doRepeat(true); },
+				&st::menuIconCopy);
 		},
-		&st::ayuRepeatMenuIcon);
+	});
 }
 
 void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
