@@ -78,30 +78,39 @@ constexpr auto kDefaultChargeStars = 10;
 	auto first = std::vector<RestrictionLabel>{
 		{ Flag::SendOther, tr::lng_rights_chat_send_text(tr::now) },
 	};
-	auto media = std::vector<RestrictionLabel>{
-		{ Flag::SendPhotos, tr::lng_rights_chat_photos(tr::now) },
-		{ Flag::SendVideos, tr::lng_rights_chat_videos(tr::now) },
-		{ Flag::SendVideoMessages, tr::lng_rights_chat_video_messages(tr::now) },
-		{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
-		{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
-		{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
-		{ Flag::SendStickers, tr::ayu_RightsSendStickers(tr::now) },
-		{ Flag::SendGifs, tr::ayu_RightsSendGifs(tr::now) },
-		{ Flag::SendInline, tr::ayu_RightsSendInline(tr::now) },
-		{ Flag::SendGames, tr::ayu_RightsSendGames(tr::now) },
-		{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
-		{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
-	};
+		auto media = std::vector<RestrictionLabel>{
+			{ Flag::SendPhotos, tr::lng_rights_chat_photos(tr::now) },
+			{ Flag::SendVideos, tr::lng_rights_chat_videos(tr::now) },
+			{ Flag::SendVideoMessages, tr::lng_rights_chat_video_messages(tr::now) },
+			{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
+			{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
+			{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
+			{
+				Flag::SendStickers
+					| Flag::SendGifs
+					| Flag::SendInline
+					| Flag::SendGames,
+				tr::lng_rights_chat_stickers(tr::now),
+			},
+			{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
+			{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
+		};
 	auto second = std::vector<RestrictionLabel>{
 		{ Flag::AddParticipants, tr::lng_rights_chat_add_members(tr::now) },
+		{ Flag::CreateTopics, tr::lng_rights_group_add_topics(tr::now) },
+		{ Flag::EditRank, (options.isUserSpecific
+			? tr::lng_rights_group_edit_rank_single
+			: tr::lng_rights_group_edit_rank)(tr::now) },
 		{ Flag::PinMessages, tr::lng_rights_group_pin(tr::now) },
 		{ Flag::ChangeInfo, tr::lng_rights_group_info(tr::now) },
 	};
-	if (options.isForum) {
-		second.push_back({
-			Flag::CreateTopics,
-			tr::lng_rights_group_add_topics(tr::now),
-		});
+	if (!options.isForum) {
+		second.erase(
+			ranges::remove(
+				second,
+				Flag::CreateTopics | Flag(),
+				&RestrictionLabel::flags),
+			end(second));
 	}
 	return {
 		{ std::nullopt, std::move(first) },
@@ -133,6 +142,7 @@ constexpr auto kDefaultChargeStars = 10;
 		};
 		auto second = std::vector<AdminRightLabel>{
 			{ Flag::ManageCall, tr::lng_rights_group_manage_calls(tr::now) },
+			{ Flag::ManageRanks, tr::lng_rights_group_manage_ranks(tr::now) },
 			{ Flag::Anonymous, tr::lng_rights_group_anonymous(tr::now) },
 			{ Flag::AddAdmins, tr::lng_rights_add_admins(tr::now) },
 		};
@@ -300,7 +310,8 @@ ChatRestrictions NegateRestrictions(ChatRestrictions value) {
 		| Flag::SendMusic
 		| Flag::SendVoiceMessages
 		| Flag::SendFiles
-		| Flag::SendOther);
+		| Flag::SendOther
+		| Flag::EditRank);
 }
 
 auto Dependencies(ChatAdminRights)
@@ -1437,11 +1448,11 @@ ChatRestrictions FixDependentRestrictions(ChatRestrictions restrictions) {
 
 	// Fix iOS bug of saving send_inline like embed_links.
 	// We copy send_stickers to send_inline.
-	//if (restrictions & ChatRestriction::SendStickers) {
-	//	restrictions |= ChatRestriction::SendInline;
-	//} else {
-	//	restrictions &= ~ChatRestriction::SendInline;
-	//}
+	if (restrictions & ChatRestriction::SendStickers) {
+		restrictions |= ChatRestriction::SendInline;
+	} else {
+		restrictions &= ~ChatRestriction::SendInline;
+	}
 
 	// Apply the strictest.
 	const auto fixOne = [&] {
@@ -1518,4 +1529,3 @@ EditFlagsControl<Data::ChatbotsPermissions> CreateEditChatbotPermissions(
 
 	return result;
 }
-

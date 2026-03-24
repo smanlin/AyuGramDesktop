@@ -311,7 +311,8 @@ TextWithEntities GenerateAdminChangeText(
 
 QString GeneratePermissionsChangeText(
 		ChatRestrictionsInfo newRights,
-		ChatRestrictionsInfo prevRights) {
+		ChatRestrictionsInfo prevRights,
+		bool isUserSpecific = false) {
 	using Flag = ChatRestriction;
 	using Flags = ChatRestrictions;
 
@@ -328,16 +329,22 @@ QString GeneratePermissionsChangeText(
 		{
 			Flag::SendVideoMessages,
 			tr::lng_admin_log_banned_send_video_messages },
-		{ Flag::SendStickers, tr::ayu_RightsSendStickers },
-		{ Flag::SendGifs, tr::ayu_RightsSendGifs },
-		{ Flag::SendInline, tr::ayu_RightsSendInline },
-		{ Flag::SendGames, tr::ayu_RightsSendGames },
+			{
+				Flag::SendStickers
+					| Flag::SendGifs
+					| Flag::SendInline
+					| Flag::SendGames,
+				tr::lng_admin_log_banned_send_stickers,
+			},
 		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links },
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },
 		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics },
 		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
+		{ Flag::EditRank, isUserSpecific
+			? tr::lng_admin_log_banned_edit_rank_single
+			: tr::lng_admin_log_banned_edit_rank },
 	};
 	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
 }
@@ -419,7 +426,8 @@ TextWithEntities GeneratePermissionsChangeText(
 		tr::marked);
 	const auto changes = GeneratePermissionsChangeText(
 		newRights,
-		prevRights);
+		prevRights,
+		true);
 	if (!changes.isEmpty()) {
 		result.text.append('\n' + changes);
 	}
