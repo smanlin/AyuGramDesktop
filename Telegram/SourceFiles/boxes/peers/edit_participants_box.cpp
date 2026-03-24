@@ -189,7 +189,7 @@ void SaveChannelAdmin(
 		.arg(user->id.value)
 		.arg(QString::number(oldRights.flags.value(), 16))
 		.arg(QString::number(newRights.flags.value(), 16))
-		.arg(rank));
+		.arg(rank.value_or(QString())));
 	channel->session().api().request(MTPchannels_EditAdmin(
 		MTP_flags(flags),
 		channel->inputChannel(),
