@@ -761,6 +761,7 @@ private:
 	rpl::variable<bool> _showMessageSeconds = false;
 	rpl::variable<bool> _showViewJson = false;
 	rpl::variable<bool> _showMessageShot = true;
+	rpl::variable<bool> _showIdentityBadgeIcons = true;
 	rpl::variable<bool> _filterZalgo = false;
 	rpl::variable<bool> _stickerConfirmation = false;
 	rpl::variable<bool> _gifConfirmation = false;
