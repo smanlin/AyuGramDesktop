@@ -1102,6 +1102,12 @@ void AyuSettings::setShowMessageSeconds(bool val) {
 	save();
 }
 
+void AyuSettings::setShowMessageDate(bool val) {
+	if (_showMessageDate.current() == val) return;
+	_showMessageDate = val;
+	save();
+}
+
 void AyuSettings::setShowViewJson(bool val) {
 	if (_showViewJson.current() == val) return;
 	_showViewJson = val;
@@ -1305,6 +1311,7 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"showPeerId", s._showPeerId.current()},
 		{"showMessageId", s._showMessageId.current()},
 		{"showMessageSeconds", s._showMessageSeconds.current()},
+		{"showMessageDate", s._showMessageDate.current()},
 		{"showViewJson", s._showViewJson.current()},
 		{"showMessageShot", s._showMessageShot.current()},
 		{"showIdentityBadgeIcons", s._showIdentityBadgeIcons.current()},
@@ -1429,6 +1436,7 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._showPeerId = j.value("showPeerId", defaults._showPeerId.current());
 	s._showMessageId = j.value("showMessageId", defaults._showMessageId.current());
 	s._showMessageSeconds = j.value("showMessageSeconds", defaults._showMessageSeconds.current());
+	s._showMessageDate = j.value("showMessageDate", defaults._showMessageDate.current());
 	s._showViewJson = j.value("showViewJson", defaults._showViewJson.current());
 	s._showMessageShot = j.value("showMessageShot", defaults._showMessageShot.current());
 	s._showIdentityBadgeIcons = j.value("showIdentityBadgeIcons", defaults._showIdentityBadgeIcons.current());

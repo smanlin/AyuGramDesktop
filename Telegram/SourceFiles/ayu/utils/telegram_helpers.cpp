@@ -520,6 +520,15 @@ QString formatMessageTime(const QTime &time) {
 	);
 }
 
+QString formatMessageTime(const QDateTime &date) {
+	const auto &settings = AyuSettings::getInstance();
+	const auto time = formatMessageTime(date.time());
+
+	return settings.showMessageDate()
+		? (QLocale().toString(date.date(), "MM/dd") + ' ' + time)
+		: time;
+}
+
 int getMediaSizeBytes(not_null<HistoryItem*> message) {
 	if (!message->media()) {
 		return -1;

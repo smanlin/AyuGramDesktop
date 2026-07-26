@@ -523,7 +523,7 @@ namespace {
 		const Ui::Text::String &text,
 		const QDateTime &dateTime) {
 	return (!text.isEmpty() && dateTime.isValid())
-		? formatMessageTime(dateTime.time())
+		? formatMessageTime(dateTime)
 		: QString();
 }
 

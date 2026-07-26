@@ -79,6 +79,7 @@ void readHistory(not_null<HistoryItem*> message);
 QString formatTTL(int time, bool isDoc);
 QString formatDateTime(const QDateTime &date);
 QString formatMessageTime(const QTime &time);
+QString formatMessageTime(const QDateTime &date);
 
 QString getDCName(int dc);
 

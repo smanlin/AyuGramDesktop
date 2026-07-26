@@ -354,6 +354,7 @@ public:
 	[[nodiscard]] PeerIdDisplay showPeerId() const { return _showPeerId.current(); }
 	[[nodiscard]] bool showMessageId() const { return _showMessageId.current(); }
 	[[nodiscard]] bool showMessageSeconds() const { return _showMessageSeconds.current(); }
+	[[nodiscard]] bool showMessageDate() const { return _showMessageDate.current(); }
 	[[nodiscard]] bool showViewJson() const { return _showViewJson.current(); }
 	[[nodiscard]] bool showMessageShot() const { return _showMessageShot.current(); }
 	[[nodiscard]] bool showIdentityBadgeIcons() const { return _showIdentityBadgeIcons.current(); }
@@ -461,6 +462,7 @@ public:
 	void setShowPeerId(PeerIdDisplay val);
 	void setShowMessageId(bool val);
 	void setShowMessageSeconds(bool val);
+	void setShowMessageDate(bool val);
 	void setShowViewJson(bool val);
 	void setShowMessageShot(bool val);
 	void setShowIdentityBadgeIcons(bool val);
@@ -630,6 +632,8 @@ public:
 	[[nodiscard]] rpl::producer<bool> showMessageIdChanges() const { return _showMessageId.changes(); }
 	[[nodiscard]] rpl::producer<bool> showMessageSecondsValue() const { return _showMessageSeconds.value(); }
 	[[nodiscard]] rpl::producer<bool> showMessageSecondsChanges() const { return _showMessageSeconds.changes(); }
+	[[nodiscard]] rpl::producer<bool> showMessageDateValue() const { return _showMessageDate.value(); }
+	[[nodiscard]] rpl::producer<bool> showMessageDateChanges() const { return _showMessageDate.changes(); }
 	[[nodiscard]] rpl::producer<bool> showViewJsonValue() const { return _showViewJson.value(); }
 	[[nodiscard]] rpl::producer<bool> showViewJsonChanges() const { return _showViewJson.changes(); }
 	[[nodiscard]] rpl::producer<bool> showMessageShotValue() const { return _showMessageShot.value(); }
@@ -759,6 +763,7 @@ private:
 	rpl::variable<PeerIdDisplay> _showPeerId = PeerIdDisplay::BotApi;
 	rpl::variable<bool> _showMessageId = false;
 	rpl::variable<bool> _showMessageSeconds = false;
+	rpl::variable<bool> _showMessageDate = false;
 	rpl::variable<bool> _showViewJson = false;
 	rpl::variable<bool> _showMessageShot = true;
 	rpl::variable<bool> _showIdentityBadgeIcons = true;

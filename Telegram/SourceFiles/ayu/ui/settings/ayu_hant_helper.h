@@ -59,6 +59,7 @@ namespace {
       {"ayu_FilterZalgo", "過濾 Zalgo"},
       {"ayu_ImproveLinkPreviews", "改善連結預覽"},
       {"ayu_SettingsShowMessageSeconds", "在訊息時間中顯示秒數"},
+      {"ayu_SettingsShowMessageDate", "在時間旁顯示日期（月/日）"},
       {"ayu_SettingsSpoofWebviewAsAndroid", "將 Webview 模擬為 Android 裝置"},
       {"ayu_SettingsBiggerWindow", "加大 Webview 視窗"},
       {"ayu_SettingsIncreaseWebviewHeight", "增加高度"},

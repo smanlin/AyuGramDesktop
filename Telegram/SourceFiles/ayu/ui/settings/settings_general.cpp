@@ -244,6 +244,14 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.setter = &AyuSettings::setShowMessageSeconds,
 	});
 	ayu.addSettingToggle({
+		.id = u"ayu/showMessageDate"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SettingsShowMessageDate"),
+			qsl("Show date (MM/DD) next to time"))),
+		.getter = &AyuSettings::showMessageDate,
+		.setter = &AyuSettings::setShowMessageDate,
+	});
+	ayu.addSettingToggle({
 		.id = u"ayu/showMessageId"_q,
 		.title = rpl::single(AyuHantHelper(
 			qsl("ayu_SettingsShowMessageID"),
