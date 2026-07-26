@@ -3052,5 +3052,25 @@ bool EditPeerInfoBox::Available(not_null<PeerData*> peer) {
 void ShowEditChatPermissions(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer) {
-	ShowEditPermissions(navigation, peer);
+	const auto full = peer->migrateToOrMe();
+
+	// Slow mode, boosts-unrestrict and stars-per-message reach the client only
+	// with channelFull, and the permissions box reads all three synchronously
+	// while it is being built. Opened before that arrives it shows them as
+	// zero, and saving writes those zeroes back - SaveSlowmodeSeconds and
+	// SaveBoostsUnrestrict have no "unchanged" guard, so slow mode is silently
+	// switched off. The manage-group page calls updateFull() when it opens,
+	// long before its own permissions button is reachable; the top bar
+	// shortcut and tg:// links land here directly, so wait for it.
+	if (full->wasFullUpdated()) {
+		ShowEditPermissions(navigation, peer);
+		return;
+	}
+	full->session().changes().peerUpdates(
+		full,
+		Data::PeerUpdate::Flag::FullInfo
+	) | rpl::take(1) | rpl::on_next(crl::guard(navigation, [=] {
+		ShowEditPermissions(navigation, peer);
+	}), full->session().lifetime());
+	full->updateFull();
 }
