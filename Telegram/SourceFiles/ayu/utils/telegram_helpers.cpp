@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/utils/telegram_helpers.h"
 
 #include "apiwrap.h"
@@ -459,7 +460,7 @@ void markReadAfterAction(not_null<History*> history) {
 
 QString formatTTL(int time, bool isDoc) {
 	if (time == 0x7FFFFFFF) {
-		return isDoc ? tr::ayu_OnePlayTTL(tr::now) : tr::ayu_OneViewTTL(tr::now);
+		return isDoc ? AYU_S(ayu_OnePlayTTL) : AYU_S(ayu_OneViewTTL);
 	}
 
 	return QString("%1s").arg(time);

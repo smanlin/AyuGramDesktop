@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/features/forward/ayu_forward.h"
 
 #include "apiwrap.h"
@@ -82,14 +83,14 @@ std::pair<QString, QString> stateName(const PeerId &id) {
 	QString status;
 
 	if (state->state == ForwardState::State::Preparing) {
-		status = tr::ayu_AyuForwardStatusPreparing(tr::now);
+		status = AYU_S(ayu_AyuForwardStatusPreparing);
 	} else if (state->state == ForwardState::State::Downloading) {
-		return std::make_pair(tr::ayu_AyuForwardStatusLoadingMedia(tr::now), "");
+		return std::make_pair(AYU_S(ayu_AyuForwardStatusLoadingMedia), "");
 	} else if (state->state == ForwardState::State::Sending) {
-		status = tr::ayu_AyuForwardStatusForwarding(tr::now);
+		status = AYU_S(ayu_AyuForwardStatusForwarding);
 	} else {
 		// ForwardState::State::Finished
-		status = tr::ayu_AyuForwardStatusFinished(tr::now);
+		status = AYU_S(ayu_AyuForwardStatusFinished);
 	}
 
 

@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 
 #include "mainwindow.h"
@@ -210,8 +211,8 @@ ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 						[=]
 						{
 						},
-						tr::ayu_MessageDetailsPackOwnerPC(tr::now),
-						QString(tr::ayu_MessageDetailsPackOwnerFetchingPC(tr::now))),
+						AYU_S(ayu_MessageDetailsPackOwnerPC),
+						QString(AYU_S(ayu_MessageDetailsPackOwnerFetchingPC))),
 	  _session(session) {
 	searchAuthor(authorId);
 }
@@ -237,14 +238,14 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 			}
 
 			if (username.isEmpty() && !user) {
-				strong->_subText = QString(tr::ayu_MessageDetailsPackOwnerNotFoundPC(tr::now));
+				strong->_subText = QString(AYU_S(ayu_MessageDetailsPackOwnerNotFoundPC));
 				strong->setActionTriggered(
 					[authorId, session]
 					{
 						QGuiApplication::clipboard()->setText(QString::number(authorId));
 						if (const auto window = session->tryResolveWindow()) {
 							if (const auto mainWidget = window->widget()->sessionController()) {
-								mainWidget->showToast(tr::ayu_IDCopiedToast(tr::now));
+								mainWidget->showToast(AYU_S(ayu_IDCopiedToast));
 							}
 						}
 					});

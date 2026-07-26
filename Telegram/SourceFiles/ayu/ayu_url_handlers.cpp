@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ayu_url_handlers.h"
 
 #include "lang_auto.h"
@@ -56,7 +57,7 @@ bool ResolveUser(
 			}
 
 			Core::App().hideMediaView();
-			Ui::show(Ui::MakeInformBox(tr::ayu_UserNotFoundMessage()));
+			Ui::show(Ui::MakeInformBox(AYU_T(ayu_UserNotFoundMessage)));
 		}
 	);
 
@@ -94,7 +95,7 @@ bool ResolveChat(
 			}
 
 			Core::App().hideMediaView();
-			Ui::show(Ui::MakeInformBox(tr::ayu_UserNotFoundMessage()));
+			Ui::show(Ui::MakeInformBox(AYU_T(ayu_UserNotFoundMessage)));
 		}
 	);
 

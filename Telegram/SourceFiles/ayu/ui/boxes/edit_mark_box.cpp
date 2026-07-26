@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/edit_mark_box.h"
 
 #include "ayu/ayu_settings.h"
@@ -41,7 +42,7 @@ void EditMarkBox::prepare() {
 	newHeight += st::boxPadding.bottom() + st::contactPadding.bottom();
 	setDimensions(st::boxWidth, newHeight);
 
-	addLeftButton(tr::ayu_BoxActionReset(),
+	addLeftButton(AYU_T(ayu_BoxActionReset),
 				  [=]
 				  {
 					  _text->setText(_defaultValue);

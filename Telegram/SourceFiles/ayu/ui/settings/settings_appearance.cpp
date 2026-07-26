@@ -207,7 +207,7 @@ void BuildAppearance(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/hidePremiumStatuses"_q,
-		.title = tr::ayu_HidePremiumStatuses(),
+		.title = AYU_T(ayu_HidePremiumStatuses),
 		.getter = &AyuSettings::hidePremiumStatuses,
 		.setter = &AyuSettings::setHidePremiumStatuses,
 	});
@@ -396,7 +396,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuAppearance::title() {
-	return tr::ayu_CategoryAppearance();
+	return AYU_T(ayu_CategoryAppearance);
 }
 
 AyuAppearance::AyuAppearance(

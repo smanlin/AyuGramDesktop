@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/plugin_info_box.h"
 
 #include "apiwrap.h"
@@ -176,7 +177,7 @@ void FillPluginInfoBox(
 			st::boxRowPadding,
 			style::al_justify);
 
-		const auto versionPrefix = tr::ayu_PluginVersion(tr::now)
+		const auto versionPrefix = AYU_S(ayu_PluginVersion)
 			+ u" "_q
 			+ metadata.version;
 
@@ -184,7 +185,7 @@ void FillPluginInfoBox(
 			versionLabel->setText(
 				versionPrefix
 				+ u" \u2022 "_q
-				+ tr::ayu_PluginNoAuthor(tr::now));
+				+ AYU_S(ayu_PluginNoAuthor));
 		} else {
 			auto text = TextWithEntities{
 				versionPrefix + u" \u2022 "_q,
@@ -231,7 +232,7 @@ void FillPluginInfoBox(
 		const auto hasDescription = !metadata.description.isEmpty();
 		auto descText = hasDescription
 			? TextWithEntities{metadata.description}
-			: TextWithEntities{tr::ayu_PluginNoDescription(tr::now)};
+			: TextWithEntities{AYU_S(ayu_PluginNoDescription)};
 		if (hasDescription) {
 			TextUtilities::ParseEntities(
 				descText,
@@ -344,7 +345,7 @@ void FillPluginInfoBox(
 	box->verticalLayout()->add(
 		object_ptr<Ui::FlatLabel>(
 			box->verticalLayout(),
-			tr::ayu_PluginsNotAvailable(),
+			AYU_T(ayu_PluginsNotAvailable),
 			st::boxDividerLabel),
 		st::boxRowPadding);
 

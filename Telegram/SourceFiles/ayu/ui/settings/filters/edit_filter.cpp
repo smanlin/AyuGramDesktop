@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/filters/edit_filter.h"
 
 #include "lang_auto.h"
@@ -134,10 +135,10 @@ void RegexEditBuilder(
 	RegexFilter data;
 
 	if (filter) {
-		box->setTitle(showToast ? tr::ayu_RegexFiltersAdd() : tr::ayu_RegexFiltersEdit());
+		box->setTitle(showToast ? AYU_T(ayu_RegexFiltersAdd) : AYU_T(ayu_RegexFiltersEdit));
 		data = *filter;
 	} else {
-		box->setTitle(tr::ayu_RegexFiltersAdd());
+		box->setTitle(AYU_T(ayu_RegexFiltersAdd));
 		data.enabled = true;
 		data.caseInsensitive = true;
 		data.reversed = false;
@@ -148,27 +149,27 @@ void RegexEditBuilder(
 			box->verticalLayout(),
 			st::windowFilterNameInput,
 			Ui::InputField::Mode::MultiLine,
-			tr::ayu_RegexFiltersPlaceholder()),
+			AYU_T(ayu_RegexFiltersPlaceholder)),
 		st::markdownLinkFieldPadding);
 	const auto errorText = AddError(box->verticalLayout(), regexValue);
 	const auto enabled = box->addRow(
 		object_ptr<Ui::Checkbox>(
 			box,
-			tr::ayu_EnableExpression(tr::now),
+			AYU_S(ayu_EnableExpression),
 			data.enabled,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 	const auto caseInsensitive = box->addRow(
 		object_ptr<Ui::Checkbox>(
 			box,
-			tr::ayu_CaseInsensitiveExpression(tr::now),
+			AYU_S(ayu_CaseInsensitiveExpression),
 			data.caseInsensitive,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 	const auto reversed = box->addRow(
 		object_ptr<Ui::Checkbox>(
 			box,
-			tr::ayu_ReversedExpression(tr::now),
+			AYU_S(ayu_ReversedExpression),
 			data.reversed,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
@@ -229,7 +230,7 @@ void RegexEditBuilder(
 					if (dialogId.has_value()) {
 						Ayu::Ui::ShowToastWithAction(
 							std::move(config),
-							tr::ayu_RegexFilterBulletinAction(tr::now),
+							AYU_S(ayu_RegexFilterBulletinAction),
 							[=]() mutable {
 								newFilter.dialogId = dialogId;
 

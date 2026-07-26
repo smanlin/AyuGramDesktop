@@ -120,7 +120,7 @@ void BuildGroupsAndChannels(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/disableGreetingSticker"_q,
-		.title = tr::ayu_DisableGreetingSticker(),
+		.title = AYU_T(ayu_DisableGreetingSticker),
 		.getter = &AyuSettings::disableGreetingSticker,
 		.setter = &AyuSettings::setDisableGreetingSticker,
 	});
@@ -263,7 +263,7 @@ void BuildWideMessagesMultiplier(
 	const auto controller = builder.controller();
 	ayu.addSlider({
 		.id = u"ayu/messageBubbleRadius"_q,
-		.title = tr::ayu_MessageBubbleRadius(),
+		.title = AYU_T(ayu_MessageBubbleRadius),
 		.steps = 17,
 		.current = settings->messageBubbleRadius(),
 		.indexToValue = [](int index) { return index; },
@@ -489,7 +489,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuChats::title() {
-	return tr::ayu_CategoryChats();
+	return AYU_T(ayu_CategoryChats);
 }
 
 AyuChats::AyuChats(

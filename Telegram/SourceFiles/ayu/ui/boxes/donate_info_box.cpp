@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/donate_info_box.h"
 
 #include "lang_auto.h"
@@ -157,7 +158,7 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(
 		object_ptr<Ui::FlatLabel>(
 			box->verticalLayout(),
-			tr::ayu_SupportBoxInfo(),
+			AYU_T(ayu_SupportBoxInfo),
 			st::starrefCenteredText),
 		st::boxRowPadding);
 
@@ -193,7 +194,7 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(InfoRow(
 		box->verticalLayout(),
 		&controller->session(),
-		tr::ayu_SupportBoxMakeDonationHeader(tr::now),
+		AYU_S(ayu_SupportBoxMakeDonationHeader),
 		str,
 		&st::menuIconEarn,
 		emojiHelper.context()));
@@ -213,7 +214,7 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(InfoRow(
 		box->verticalLayout(),
 		&controller->session(),
-		tr::ayu_SupportBoxSendProofHeader(tr::now),
+		AYU_S(ayu_SupportBoxSendProofHeader),
 		proofText,
 		&st::menuIconPhoto,
 		Core::TextContext({
@@ -225,9 +226,9 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(InfoRow(
 		box->verticalLayout(),
 		&controller->session(),
-		tr::ayu_SupportBoxReceiveBadgeHeader(tr::now),
+		AYU_S(ayu_SupportBoxReceiveBadgeHeader),
 		TextWithEntities{
-			tr::ayu_SupportBoxReceiveBadgeInfo(tr::now)
+			AYU_S(ayu_SupportBoxReceiveBadgeInfo)
 		},
 		&st::menuIconStarRefShare,
 		Core::TextContext({

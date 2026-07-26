@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/message_shot_box.h"
 
 #include "lang_auto.h"
@@ -75,20 +76,20 @@ void MessageShotBox::setupContent() {
 
 	AyuFeatures::MessageShot::setShotConfig(_config);
 
-	setTitle(rpl::single(tr::ayu_MessageShotTopBarText(tr::now)));
+	setTitle(rpl::single(AYU_S(ayu_MessageShotTopBarText)));
 
 	auto wrap = object_ptr<Ui::VerticalLayout>(this);
 	const auto content = wrap.data();
 	setInnerWidget(object_ptr<Ui::OverrideMargins>(this, std::move(wrap)));
 
-	AddSubsectionTitle(content, tr::ayu_MessageShotPreview());
+	AddSubsectionTitle(content, AYU_T(ayu_MessageShotPreview));
 
 	const auto imageView = content->add(object_ptr<ImageView>(content), st::imageViewPadding);
 
 	AddSkip(content);
 	AddDivider(content);
 	AddSkip(content);
-	AddSubsectionTitle(content, tr::ayu_MessageShotPreferences());
+	AddSubsectionTitle(content, AYU_T(ayu_MessageShotPreferences));
 
 	auto hasReactions = false;
 	auto hasReplies = false;
@@ -243,7 +244,7 @@ void MessageShotBox::setupContent() {
 
 	AddButtonWithLabel(
 		content,
-		tr::ayu_MessageShotTheme(),
+		AYU_T(ayu_MessageShotTheme),
 		selectedTheme->value(),
 		st::settingsButtonNoIcon
 	)->addClickHandler(
@@ -295,7 +296,7 @@ void MessageShotBox::setupContent() {
 		});
 	AddButtonWithIcon(
 		content,
-		tr::ayu_MessageShotShowBackground(),
+		AYU_T(ayu_MessageShotShowBackground),
 		st::settingsButtonNoIcon
 	)->toggleOn(rpl::single(shotSettings.showBackground())
 	)->toggledValue(
@@ -309,7 +310,7 @@ void MessageShotBox::setupContent() {
 
 	auto latestToggle = AddButtonWithIcon(
 		content,
-		tr::ayu_MessageShotShowDate(),
+		AYU_T(ayu_MessageShotShowDate),
 		st::settingsButtonNoIcon
 	);
 	latestToggle->toggleOn(rpl::single(shotSettings.showDate())
@@ -325,7 +326,7 @@ void MessageShotBox::setupContent() {
 	if (hasReactions) {
 		latestToggle = AddButtonWithIcon(
 			content,
-			tr::ayu_MessageShotShowReactions(),
+			AYU_T(ayu_MessageShotShowReactions),
 			st::settingsButtonNoIcon
 		);
 		latestToggle->toggleOn(rpl::single(shotSettings.showReactions())
@@ -342,7 +343,7 @@ void MessageShotBox::setupContent() {
 	if (hasHeaderDecorations) {
 		latestToggle = AddButtonWithIcon(
 			content,
-			tr::ayu_MessageShotShowHeaderDecorations(),
+			AYU_T(ayu_MessageShotShowHeaderDecorations),
 			st::settingsButtonNoIcon
 		);
 		latestToggle->toggleOn(rpl::single(shotSettings.showHeaderDecorations())
@@ -359,7 +360,7 @@ void MessageShotBox::setupContent() {
 	if (hasReplies) {
 		latestToggle = AddButtonWithIcon(
 			content,
-			tr::ayu_MessageShotShowColorfulReplies(),
+			AYU_T(ayu_MessageShotShowColorfulReplies),
 			st::settingsButtonNoIcon
 		);
 		latestToggle->toggleOn(rpl::single(shotSettings.showColorfulReplies())
@@ -380,7 +381,7 @@ void MessageShotBox::setupContent() {
 	if (hasSpoilers) {
 		latestToggle = AddButtonWithIcon(
 			content,
-			tr::ayu_MessageShotRevealSpoilers(),
+			AYU_T(ayu_MessageShotRevealSpoilers),
 			st::settingsButtonNoIcon
 		);
 		latestToggle->toggleOn(rpl::single(shotSettings.revealSpoilers())
@@ -396,7 +397,7 @@ void MessageShotBox::setupContent() {
 
 	AddSkip(content);
 
-	addButton(tr::ayu_MessageShotSave(),
+	addButton(AYU_T(ayu_MessageShotSave),
 			  [=]
 			  {
 				  const auto image = imageView->getImage();
@@ -413,7 +414,7 @@ void MessageShotBox::setupContent() {
 			  	  _tookShot = true;
 				  closeBox();
 			  });
-	addButton(tr::ayu_MessageShotCopy(),
+	addButton(AYU_T(ayu_MessageShotCopy),
 			  [=]
 			  {
 				  QGuiApplication::clipboard()->setImage(imageView->getImage());

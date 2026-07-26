@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_other.h"
 
 #include "lang_auto.h"
@@ -141,7 +142,7 @@ void BuildDonations(SectionBuilder &builder) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
 			const auto container = wctx.container;
 
-			AddSubsectionTitle(container, tr::ayu_SupportHeader());
+			AddSubsectionTitle(container, AYU_T(ayu_SupportHeader));
 			AddDonate(
 				AddButtonWithIcon(
 					container,
@@ -162,13 +163,13 @@ void BuildDonations(SectionBuilder &builder) {
 				tr::ayu_SupportDescription2(
 					lt_item,
 					rpl::single(
-						Ui::Text::Link(tr::ayu_SupportDescription1(tr::now), QString("tg://support"))
+						Ui::Text::Link(AYU_S(ayu_SupportDescription1), QString("tg://support"))
 					),
 					tr::marked));
 		}, [&](const SearchContext &sctx) {
 			sctx.entries->push_back({
 				.id = u"ayu/donate"_q,
-				.title = tr::ayu_SupportHeader(tr::now),
+				.title = AYU_S(ayu_SupportHeader),
 				.section = sctx.sectionId,
 			});
 		});
@@ -178,18 +179,18 @@ void BuildDonations(SectionBuilder &builder) {
 void BuildCrashReporting(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 #ifndef TDESKTOP_DISABLE_AUTOUPDATE
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_CategoryOther());
+	builder.addSubsectionTitle(AYU_T(ayu_CategoryOther));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/crashReporting"_q,
 		.altIds = { u"ayu/crashlytics"_q },
-		.title = tr::ayu_CrashReporting(),
+		.title = AYU_T(ayu_CrashReporting),
 		.getter = &AyuSettings::crashReporting,
 		.setter = &AyuSettings::setCrashReporting,
 		.icon = { &st::menuIconReport },
 	});
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_CrashReportingDescription());
+	builder.addDividerText(AYU_T(ayu_CrashReportingDescription));
 #endif
 }
 
@@ -199,7 +200,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 	builder.addSkip();
 	builder.addButton({
 		.id = u"ayu/registerUrlScheme"_q,
-		.title = tr::ayu_RegisterURLScheme(),
+		.title = AYU_T(ayu_RegisterURLScheme),
 		.icon = { &st::menuIconLink },
 		.onClick = [=] {
 			Core::Application::RegisterUrlScheme();
@@ -208,7 +209,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 	});
 	builder.addButton({
 		.id = u"ayu/resetSettings"_q,
-		.title = tr::ayu_ResetSettings(),
+		.title = AYU_T(ayu_ResetSettings),
 		.icon = { &st::menuIconRestore },
 		.onClick = [=] {
 			controller->show(Ui::MakeConfirmBox({
@@ -242,7 +243,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuOther::title() {
-	return tr::ayu_CategoryOther();
+	return AYU_T(ayu_CategoryOther);
 }
 
 AyuOther::AyuOther(

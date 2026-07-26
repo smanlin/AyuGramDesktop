@@ -84,7 +84,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 		return {
 			.widget = object_ptr<Ui::FlatLabel>(
 				ctx.container,
-				tr::ayu_SettingsDescription() | rpl::map([](const QString &v) {
+				AYU_T(ayu_SettingsDescription) | rpl::map([](const QString &v) {
 					return AyuHantHelper(qsl("ayu_SettingsDescription"), v);
 				}),
 				st::centeredBoxLabel),

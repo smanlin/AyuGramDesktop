@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/features/filters/filters_utils.h"
 
 #include "apiwrap.h"
@@ -291,7 +292,7 @@ void ResolveFilterBackupPeers(const std::vector<QString> &peerHints) {
 
 void FilterUtils::importFromLink(const QString &link) {
 	if (link.isEmpty()) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailFetch(tr::now));
+		Ui::Toast::Show(AYU_S(ayu_FiltersToastFailFetch));
 		return;
 	}
 
@@ -316,7 +317,7 @@ void FilterUtils::importFromLink(const QString &link) {
 
 			if (jsonString.isNull()) {
 				LOG(("FilterUtils: Invalid response."));
-				Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+				Ui::Toast::Show(AYU_S(ayu_FiltersToastFailImport));
 
 				reply->deleteLater();
 				return;
@@ -385,7 +386,7 @@ void FilterUtils::publishFilters() {
 			} else {
 				LOG(("Failed to publish filters to dpaste, error: %1").arg(reply->errorString()));
 
-				Ui::Toast::Show(tr::ayu_FiltersToastFailPublish(tr::now));
+				Ui::Toast::Show(AYU_S(ayu_FiltersToastFailPublish));
 			}
 			reply->deleteLater();
 		});
@@ -396,20 +397,20 @@ void FilterUtils::importFromJson(const QByteArray &json) {
 	const auto document = QJsonDocument::fromJson(json, &error);
 
 	if (error.error != QJsonParseError::NoError) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+		Ui::Toast::Show(AYU_S(ayu_FiltersToastFailImport));
 		LOG(("FilterUtils: Failed to parse JSON, error: %1"
 		).arg(error.errorString()));
 		return;
 	}
 	if (!document.isObject()) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+		Ui::Toast::Show(AYU_S(ayu_FiltersToastFailImport));
 		LOG(("FilterUtils: not an object received in JSON"));
 		return;
 	}
 	const auto changes = prepareChanges(document.object());
 
 	if (!HasChanges(changes)) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailNoChanges(tr::now));
+		Ui::Toast::Show(AYU_S(ayu_FiltersToastFailNoChanges));
 		LOG(("FilterUtils: received empty changes"));
 		return;
 	}
@@ -420,14 +421,14 @@ void FilterUtils::importFromJson(const QByteArray &json) {
 			close();
 			try {
 				applyChanges(changes);
-				Ui::Toast::Show(tr::ayu_FiltersToastSuccess(tr::now));
+				Ui::Toast::Show(AYU_S(ayu_FiltersToastSuccess));
 			} catch (...) {
 				LOG(("FilterUtils: Failed to apply import changes"));
-				Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+				Ui::Toast::Show(AYU_S(ayu_FiltersToastFailImport));
 			}
 		},
-		.confirmText = tr::ayu_FiltersMenuImport(),
-		.title = tr::ayu_FiltersSheetTitle(),
+		.confirmText = AYU_T(ayu_FiltersMenuImport),
+		.title = AYU_T(ayu_FiltersSheetTitle),
 	});
 	Ui::show(std::move(box));
 }
@@ -689,13 +690,13 @@ void FilterUtils::handleResponse(const QByteArray &response) {
 		importFromJson(response);
 	} catch (...) {
 		LOG(("FilterUtils: Failed to apply response"));
-		Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+		Ui::Toast::Show(AYU_S(ayu_FiltersToastFailImport));
 	}
 }
 
 void FilterUtils::gotFailure(const QNetworkReply::NetworkError &error) {
 	LOG(("FilterUtils: Error %1").arg(error));
-	Ui::Toast::Show(tr::ayu_FiltersToastFailFetch(tr::now));
+	Ui::Toast::Show(AYU_S(ayu_FiltersToastFailFetch));
 }
 
 ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {

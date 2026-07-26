@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/import_filters_box.h"
 
 #include "lang_auto.h"
@@ -28,7 +29,7 @@ namespace Ui {
 void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 	box->setStyle(st::giveawayGiftCodeBox);
 	box->setNoContentMargin(true);
-	box->setTitle(import ? tr::ayu_FiltersMenuImport() : tr::ayu_FiltersMenuExport());
+	box->setTitle(import ? AYU_T(ayu_FiltersMenuImport) : AYU_T(ayu_FiltersMenuExport));
 	box->verticalLayout()->resizeToWidth(box->width());
 
 	const auto container = box->verticalLayout();
@@ -80,8 +81,8 @@ void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 			}
 		}
 	};
-	addOption(false, import ? tr::ayu_FiltersImportClipboard(tr::now) : tr::ayu_FiltersExportClipboard(tr::now));
-	addOption(true, import ? tr::ayu_FiltersImportURL(tr::now) : tr::ayu_FiltersExportURL(tr::now));
+	addOption(false, import ? AYU_S(ayu_FiltersImportClipboard) : AYU_S(ayu_FiltersExportClipboard));
+	addOption(true, import ? AYU_S(ayu_FiltersImportURL) : AYU_S(ayu_FiltersExportURL));
 
 	intoURL->setChangedCallback([=](bool value)
 	{
@@ -91,7 +92,7 @@ void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 	});
 
 	const auto actionButton = box->addButton(
-		import ? tr::ayu_FiltersMenuImport() : tr::ayu_FiltersMenuExport(),
+		import ? AYU_T(ayu_FiltersMenuImport) : AYU_T(ayu_FiltersMenuExport),
 		[=]
 		{
 			const auto isURL = intoURL.get()->current();

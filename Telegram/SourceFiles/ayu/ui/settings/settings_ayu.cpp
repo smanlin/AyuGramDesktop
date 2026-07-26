@@ -428,7 +428,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				AYU_T(ayu_GhostModeToggle),
 				std::move(checkboxes),
 				true,
-				tr::ayu_GhostModeOptionShiftDescription(tr::now));
+				AYU_S(ayu_GhostModeOptionShiftDescription));
 			state->refreshCheckboxes = std::move(collapsible.refresh);
 			if (wctx.highlights && collapsible.widget) {
 				wctx.highlights->push_back(std::make_pair(
@@ -503,9 +503,9 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 			AddSkip(container);
 			const auto silentOptions = std::vector<QString>{
-				tr::ayu_SendWithoutSoundByDefaultNever(tr::now),
-				tr::ayu_SendWithoutSoundByDefaultInGhostMode(tr::now),
-				tr::ayu_SendWithoutSoundByDefaultAlways(tr::now),
+				AYU_S(ayu_SendWithoutSoundByDefaultNever),
+				AYU_S(ayu_SendWithoutSoundByDefaultInGhostMode),
+				AYU_S(ayu_SendWithoutSoundByDefaultAlways),
 			};
 			const auto silentOptionText = state->selectedUserId.value(
 			) | rpl::map([=](uint64 id) {
@@ -532,7 +532,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 							static_cast<SendWithoutSoundOption>(index));
 					};
 					SingleChoiceBox(box, {
-						.title = tr::ayu_SendWithoutSoundByDefault(),
+						.title = AYU_T(ayu_SendWithoutSoundByDefault),
 						.options = silentOptions,
 						.initialSelection = static_cast<int>(
 							AyuSettings::ghost(state->selectedUserId.current()
@@ -542,12 +542,12 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				}));
 			});
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_SendWithoutSoundByDefaultDescription());
+			AddDividerText(container, AYU_T(ayu_SendWithoutSoundByDefaultDescription));
 
 			AddSkip(container);
 			const auto suggestGhostModeButton = AddButtonWithIcon(
 				container,
-				tr::ayu_SuggestGhostModeBeforeViewingStory(),
+				AYU_T(ayu_SuggestGhostModeBeforeViewingStory),
 				st::settingsButtonNoIcon);
 			if (wctx.highlights) {
 				wctx.highlights->push_back(std::make_pair(
@@ -570,7 +570,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_SuggestGhostModeBeforeViewingStoryDescription());
+			AddDividerText(container, AYU_T(ayu_SuggestGhostModeBeforeViewingStoryDescription));
 
 			auto showMenu = [=] {
 				state->menu = base::make_unique_q<Ui::PopupMenu>(
@@ -629,7 +629,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/suggestGhostModeBeforeViewingStory"_q,
-				.title = tr::ayu_SuggestGhostModeBeforeViewingStory(tr::now),
+				.title = AYU_S(ayu_SuggestGhostModeBeforeViewingStory),
 				.section = sctx.sectionId,
 			});
 		});

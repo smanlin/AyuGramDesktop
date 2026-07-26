@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/font_selector.h"
 
 #include "ayu/ayu_settings.h"
@@ -868,7 +869,7 @@ void AyuUi::FontSelectorBox::prepare() {
 				  closeBox();
 			  });
 
-	addLeftButton(tr::ayu_BoxActionReset(),
+	addLeftButton(AYU_T(ayu_BoxActionReset),
 				  [=]
 				  {
 					  _hook(qs(""));
@@ -887,7 +888,7 @@ void AyuUi::FontSelectorBox::prepare() {
 					  closeBox();
 				  });
 
-	setTitle(tr::ayu_CustomizeFontTitle());
+	setTitle(AYU_T(ayu_CustomizeFontTitle));
 
 	const auto topContainer = Ui::CreateChild<Ui::VerticalLayout>(this);
 	setupTop(topContainer);

@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/filters/settings_filters_list.h"
 
 #include "lang_auto.h"
@@ -37,10 +38,10 @@ namespace Settings {
 
 rpl::producer<QString> AyuFiltersList::title() {
 	if (shadowBan) {
-		return tr::ayu_FiltersShadowBan();
+		return AYU_T(ayu_FiltersShadowBan);
 	}
 	if (!dialogId.has_value()) {
-		return tr::ayu_RegexFiltersShared();
+		return AYU_T(ayu_RegexFiltersShared);
 	}
 
 	const auto did = abs(dialogId.value());
@@ -56,7 +57,7 @@ rpl::producer<QString> AyuFiltersList::title() {
 		}
 		res = name;
 	} else {
-		res = tr::ayu_RegexFiltersHeader(tr::now) + " (" + QString::number(did) + ")";
+		res = AYU_S(ayu_RegexFiltersHeader) + " (" + QString::number(did) + ")";
 	}
 
 	return rpl::single(res);
@@ -238,7 +239,7 @@ void AyuFiltersList::initializeSharedFilters(
 
 	if (!filters.empty()) {
 		AddSkip(container);
-		filtersTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersHeader());
+		filtersTitle = AddSubsectionTitle(container, AYU_T(ayu_RegexFiltersHeader));
 
 		for (const auto &filter : filters) {
 			addNewFilter(filter);
@@ -250,7 +251,7 @@ void AyuFiltersList::initializeSharedFilters(
 			AddSectionDivider(container);
 		}
 
-		excludedTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersExcluded());
+		excludedTitle = AddSubsectionTitle(container, AYU_T(ayu_RegexFiltersExcluded));
 
 		for (const auto &exclusion : exclusions) {
 			addNewFilter(exclusion, true);
@@ -258,7 +259,7 @@ void AyuFiltersList::initializeSharedFilters(
 	}
 
 	if (filters.empty() && exclusions.empty()) {
-		Ui::AddDividerText(container, tr::ayu_RegexFiltersListEmpty());
+		Ui::AddDividerText(container, AYU_T(ayu_RegexFiltersListEmpty));
 	}
 }
 
@@ -280,7 +281,7 @@ void AyuFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container
 	if (AyuSettings::getInstance().shadowBanIds().size() > 0) {
 		AddSkip(container);
 
-		filtersTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersHeader());
+		filtersTitle = AddSubsectionTitle(container, AYU_T(ayu_RegexFiltersHeader));
 		const auto content = container->add(std::move(list));
 
 		AddSkip(container);
@@ -289,7 +290,7 @@ void AyuFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container
 		delegate->setContent(content->entity());
 		ctrl->setDelegate(delegate);
 	} else {
-		Ui::AddDividerText(container, tr::ayu_RegexFiltersListEmpty());
+		Ui::AddDividerText(container, AYU_T(ayu_RegexFiltersListEmpty));
 	}
 }
 

@@ -348,7 +348,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuGeneral::title() {
-	return tr::ayu_CategoryGeneral();
+	return AYU_T(ayu_CategoryGeneral);
 }
 
 AyuGeneral::AyuGeneral(

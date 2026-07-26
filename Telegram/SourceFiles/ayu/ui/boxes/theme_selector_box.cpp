@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/boxes/theme_selector_box.h"
 
 #include "lang_auto.h"
@@ -45,7 +46,7 @@ void ThemeSelectorBox::prepare() {
 void ThemeSelectorBox::setupContent() {
 	using namespace Settings;
 
-	setTitle(tr::ayu_MessageShotThemeSelectTitle());
+	setTitle(AYU_T(ayu_MessageShotThemeSelectTitle));
 
 	auto wrap2 = object_ptr<Ui::VerticalLayout>(this);
 	const auto container = wrap2.data();
@@ -174,13 +175,13 @@ void ThemeSelectorBox::setupContent() {
 								 const auto type = AyuFeatures::MessageShot::getSelectedFromDefault();
 								 const auto name = (type != Window::Theme::EmbeddedType(-1))
 									 ? AyuFeatures::MessageShot::embeddedThemeDisplayName(type)
-									 : tr::ayu_MessageShotThemeDefault(tr::now);
+									 : AYU_S(ayu_MessageShotThemeDefault);
 								 _themeNames.fire(QString(name));
 								 _selectedPalette = palette;
 							 },
 							 lifetime());
 
-	addButton(tr::ayu_MessageShotThemeApply(),
+	addButton(AYU_T(ayu_MessageShotThemeApply),
 			  [=]
 			  {
 				  _palettes.fire(std::move(_selectedPalette));

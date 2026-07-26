@@ -4,6 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/features/message_shot/message_shot_theme_state.h"
 
 #include "lang_auto.h"
@@ -293,7 +294,7 @@ QString embeddedThemeDisplayName(Window::Theme::EmbeddedType type) {
 	case Window::Theme::EmbeddedType::NightGreen:
 		return tr::lng_settings_theme_night(tr::now);
 	}
-	return tr::ayu_MessageShotThemeDefault(tr::now);
+	return AYU_S(ayu_MessageShotThemeDefault);
 }
 
 QString resolveThemeName() {
@@ -305,7 +306,7 @@ QString resolveThemeName() {
 		const auto type = static_cast<Window::Theme::EmbeddedType>(shot.embeddedThemeType());
 		return embeddedThemeDisplayName(type);
 	}
-	return tr::ayu_MessageShotThemeDefault(tr::now);
+	return AYU_S(ayu_MessageShotThemeDefault);
 }
 
 std::shared_ptr<style::palette> getPersistedPalette() {
