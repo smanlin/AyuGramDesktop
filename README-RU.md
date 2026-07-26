@@ -87,7 +87,13 @@ brew install --cask ayugram
 
 ### NixOS
 
-Попробуйте [этот репозиторий](https://github.com/ayugram-port/ayugram-desktop).
+#### Флейк (рекомендуется)
+
+Установите `ayugram-desktop` из [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
+
+#### Nixpkgs
+
+Установите `ayugram-desktop` из [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
 
 ### ALT Linux
 
@@ -95,11 +101,22 @@ brew install --cask ayugram
 
 ### Gentoo Linux
 
-Инструкцию по установке можно найти в [этом репозитории](https://github.com/OverLessArtem/ayugram-ebuild-gentoo).
+Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-ebuild-gentoo).
+
+### Void Linux
+Инструкцию по установке можно найти в [этом репозитории](https://codeberg.org/OverLessArtem/ayugram-template-void)
 
 ### EPM
 
 `epm play ayugram`
+
+### Fedora
+
+Из репозитория [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/).
+
+```bash
+dnf install ayugram-desktop
+```
 
 ### Любой другой Линукс дистрибутив
 
@@ -142,4 +159,4 @@ Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
 
 ### Боты
 
-- [TelegramDB](https://t.me/tgdatabase) для получения юзернейма по ID
+- [TelegramDB](https://t.me/tgdatabase) для получения юзернейма по ID (до закрытия бесплатной версии 2 апреля 2026)

@@ -12,6 +12,13 @@
 #include "ayu/ui/components/image_view.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
+#include "data/data_chat.h"
+#include "data/data_channel.h"
+#include "data/data_todo_list.h"
+#include "data/data_user.h"
+#include "history/history.h"
+#include "history/history_item_components.h"
+#include "history/history_item.h"
 #include "main/main_session.h"
 #include "settings/settings_common.h"
 #include "styles/style_ayu_styles.h"
@@ -68,7 +75,7 @@ void MessageShotBox::setupContent() {
 
 	AyuFeatures::MessageShot::setShotConfig(_config);
 
-	setTitle(tr::ayu_MessageShotTopBarText());
+	setTitle(rpl::single(tr::ayu_MessageShotTopBarText(tr::now)));
 
 	auto wrap = object_ptr<Ui::VerticalLayout>(this);
 	const auto content = wrap.data();
@@ -82,6 +89,119 @@ void MessageShotBox::setupContent() {
 	AddDivider(content);
 	AddSkip(content);
 	AddSubsectionTitle(content, tr::ayu_MessageShotPreferences());
+
+	auto hasReactions = false;
+	auto hasReplies = false;
+	auto hasHeaderDecorations = false;
+	auto hasSpoilers = false;
+	for (const auto &item : _config.messages) {
+		if (!hasReactions && !item->reactions().empty()) {
+			hasReactions = true;
+		}
+		if (!hasReplies) {
+			if (item->replyTo().replying()
+				|| (item->media() && item->media()->webpage())) {
+				hasReplies = true;
+			}
+		}
+		if (!hasSpoilers) {
+			for (const auto &entity : item->originalText().entities) {
+				if (entity.type() == EntityType::Spoiler) {
+					hasSpoilers = true;
+					break;
+				}
+			}
+			if (!hasSpoilers && item->media()) {
+				if (item->media()->hasSpoiler()) {
+					hasSpoilers = true;
+				} else if (const auto todoList = item->media()->todolist()) {
+					for (const auto &entity : todoList->title.entities) {
+						if (entity.type() == EntityType::Spoiler) {
+							hasSpoilers = true;
+							break;
+						}
+					}
+					if (!hasSpoilers) {
+						for (const auto &task : todoList->items) {
+							for (const auto &entity : task.text.entities) {
+								if (entity.type() == EntityType::Spoiler) {
+									hasSpoilers = true;
+									break;
+								}
+							}
+							if (hasSpoilers) break;
+						}
+					}
+				}
+			}
+		}
+		if (!hasHeaderDecorations) {
+			const auto drawChannelBadge = [&] {
+				if (item->isDiscussionPost()) {
+					return true;
+				} else if (item->author()->isMegagroup()) {
+					if (const auto signedInfo = item->Get<HistoryMessageSigned>()) {
+						if (!signedInfo->viaBusinessBot) {
+							return false;
+						}
+					}
+				}
+				return item->history()->peer->isMegagroup()
+					&& item->author()->isChannel()
+					&& !item->out();
+			}();
+
+			auto badgeText = QString();
+			if (item->isDiscussionPost()) {
+				badgeText = tr::lng_channel_badge(tr::now);
+			} else if (item->author()->isMegagroup()) {
+				if (const auto signedInfo = item->Get<HistoryMessageSigned>()) {
+					if (!signedInfo->viaBusinessBot) {
+						badgeText = signedInfo->author;
+					}
+				}
+			} else if (drawChannelBadge) {
+				badgeText = tr::lng_channel_badge(tr::now);
+			} else if (const auto chat = item->history()->peer->asChat()) {
+				if (const auto user = item->author()->asUser()) {
+					const auto rank = chat->memberRanks.find(peerToUser(user->id));
+					if (rank != chat->memberRanks.end()) {
+						badgeText = rank->second;
+					}
+				}
+			} else if (const auto channel = item->history()->peer->asMegagroup()) {
+				if (const auto user = item->author()->asUser()) {
+					const auto info = channel->mgInfo.get();
+					const auto userId = peerToUser(user->id);
+					const auto isCreator = info && (info->creator == user);
+					const auto isAdmin = info && info->admins.contains(userId);
+					if (isCreator || isAdmin) {
+						const auto rank = info->memberRanks.find(userId);
+						if (rank != info->memberRanks.end()
+							&& !rank->second.isEmpty()) {
+							badgeText = rank->second;
+						} else if (isCreator) {
+							badgeText = tr::lng_owner_badge(tr::now);
+						} else {
+							badgeText = tr::lng_admin_badge(tr::now);
+						}
+					} else {
+						badgeText = item->fromRank();
+					}
+				}
+			}
+
+			hasHeaderDecorations = drawChannelBadge
+				|| !badgeText.isEmpty()
+				|| (item->boostsApplied() > 0);
+		}
+		if (hasReactions
+			&& hasReplies
+			&& hasHeaderDecorations
+			&& hasSpoilers) {
+			break;
+		}
+	}
 
 	const auto firstPreviewLatch = std::make_shared<TimedCountDownLatch>(1);
 	const auto generation = content->lifetime().make_state<int>(0);
@@ -187,11 +307,12 @@ void MessageShotBox::setupContent() {
 		},
 		content->lifetime());
 
-	AddButtonWithIcon(
+	auto latestToggle = AddButtonWithIcon(
 		content,
 		tr::ayu_MessageShotShowDate(),
 		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showDate())
+	);
+	latestToggle->toggleOn(rpl::single(shotSettings.showDate())
 	)->toggledValue(
 	) | rpl::skip(1) | on_next(
 		[=](bool enabled)
@@ -201,52 +322,77 @@ void MessageShotBox::setupContent() {
 		},
 		content->lifetime());
 
-	AddButtonWithIcon(
-		content,
-		tr::ayu_MessageShotShowReactions(),
-		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showReactions())
-	)->toggledValue(
-	) | rpl::skip(1) | on_next(
-		[=](bool enabled)
-		{
-			AyuSettings::getInstance().messageShotSettings().setShowReactions(enabled);
-			updatePreview();
-		},
-		content->lifetime());
+	if (hasReactions) {
+		latestToggle = AddButtonWithIcon(
+			content,
+			tr::ayu_MessageShotShowReactions(),
+			st::settingsButtonNoIcon
+		);
+		latestToggle->toggleOn(rpl::single(shotSettings.showReactions())
+		)->toggledValue(
+		) | rpl::skip(1) | on_next(
+			[=](bool enabled)
+			{
+				AyuSettings::getInstance().messageShotSettings().setShowReactions(enabled);
+				updatePreview();
+			},
+			content->lifetime());
+	}
 
-	const auto latestToggle = AddButtonWithIcon(
-		content,
-		tr::ayu_MessageShotShowColorfulReplies(),
-		st::settingsButtonNoIcon
-	);
-	latestToggle->toggleOn(rpl::single(shotSettings.showColorfulReplies())
-	)->toggledValue(
-	) | rpl::skip(1) | on_next(
-		[=](bool enabled)
-		{
-			auto &currentSettings = AyuSettings::getInstance();
-			currentSettings.messageShotSettings().setShowColorfulReplies(enabled);
-			currentSettings.setSimpleQuotesAndReplies(!enabled);
+	if (hasHeaderDecorations) {
+		latestToggle = AddButtonWithIcon(
+			content,
+			tr::ayu_MessageShotShowHeaderDecorations(),
+			st::settingsButtonNoIcon
+		);
+		latestToggle->toggleOn(rpl::single(shotSettings.showHeaderDecorations())
+		)->toggledValue(
+		) | rpl::skip(1) | on_next(
+			[=](bool enabled)
+			{
+				AyuSettings::getInstance().messageShotSettings().setShowHeaderDecorations(enabled);
+				updatePreview();
+			},
+			content->lifetime());
+	}
 
-			_config.st = std::make_shared<Ui::ChatStyle>(_config.st.get());
-			updatePreview();
-		},
-		content->lifetime());
+	if (hasReplies) {
+		latestToggle = AddButtonWithIcon(
+			content,
+			tr::ayu_MessageShotShowColorfulReplies(),
+			st::settingsButtonNoIcon
+		);
+		latestToggle->toggleOn(rpl::single(shotSettings.showColorfulReplies())
+		)->toggledValue(
+		) | rpl::skip(1) | on_next(
+			[=](bool enabled)
+			{
+				auto &currentSettings = AyuSettings::getInstance();
+				currentSettings.messageShotSettings().setShowColorfulReplies(enabled);
+				currentSettings.setSimpleQuotesAndReplies(!enabled);
 
-	AddButtonWithIcon(
-		content,
-		tr::ayu_MessageShotShowSpoiler(),
-		st::settingsButtonNoIcon
-	)->toggleOn(rpl::single(shotSettings.showSpoiler())
-	)->toggledValue(
-	) | rpl::skip(1) | on_next(
-		[=](bool enabled)
-		{
-			AyuSettings::getInstance().messageShotSettings().setShowSpoiler(enabled);
-			updatePreview();
-		},
-		content->lifetime());
+				_config.st = std::make_shared<Ui::ChatStyle>(_config.st.get());
+				updatePreview();
+			},
+			content->lifetime());
+	}
+
+	if (hasSpoilers) {
+		latestToggle = AddButtonWithIcon(
+			content,
+			tr::ayu_MessageShotRevealSpoilers(),
+			st::settingsButtonNoIcon
+		);
+		latestToggle->toggleOn(rpl::single(shotSettings.revealSpoilers())
+		)->toggledValue(
+		) | rpl::skip(1) | on_next(
+			[=](bool enabled)
+			{
+				AyuSettings::getInstance().messageShotSettings().setRevealSpoilers(enabled);
+				updatePreview();
+			},
+			content->lifetime());
+	}
 
 	AddSkip(content);
 

@@ -49,6 +49,7 @@ struct PeerShortInfoFields {
 	QString joinedInLabel;
 	TextWithEntities joinedInValue;
 	QString username;
+	QString usernameLink;
 	Data::Birthday birthday;
 	TextWithEntities note;
 	bool isBio = false;
@@ -187,7 +188,7 @@ private:
 	[[nodiscard]] rpl::producer<TextWithEntities> channelValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> linkValue() const;
 	[[nodiscard]] rpl::producer<QString> phoneValue() const;
-	[[nodiscard]] rpl::producer<QString> usernameValue() const;
+	[[nodiscard]] rpl::producer<TextWithEntities> usernameValue() const;
 	[[nodiscard]] rpl::producer<QString> birthdayLabel() const;
 	[[nodiscard]] rpl::producer<QString> birthdayValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> aboutValue() const;
