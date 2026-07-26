@@ -29,6 +29,10 @@ inChannelBadgeIcon: icon {{ "ayu/channel", msgInDateFg }};
 inChannelBadgeSelectedIcon: icon {{ "ayu/channel", msgInDateFgSelected }};
 outChannelBadgeIcon: icon {{ "ayu/channel", msgOutDateFg }};
 outChannelBadgeSelectedIcon: icon {{ "ayu/channel", msgOutDateFgSelected }};
+inGroupBadgeIcon: icon {{ "dialogs/dialogs_chat", msgInDateFg }};
+inGroupBadgeSelectedIcon: icon {{ "dialogs/dialogs_chat", msgInDateFgSelected }};
+outGroupBadgeIcon: icon {{ "dialogs/dialogs_chat", msgOutDateFg }};
+outGroupBadgeSelectedIcon: icon {{ "dialogs/dialogs_chat", msgOutDateFgSelected }};
 
 infoExteraOfficialBadge: icon {{ "ayu/extera_official", profileVerifiedCheckBg }};
 infoExteraSupporterBadge: icon {{ "ayu/extera_badge", profileVerifiedCheckBg }};

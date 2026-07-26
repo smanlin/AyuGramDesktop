@@ -599,6 +599,64 @@ void ApiWrap::requestMessageData(
 	}
 }
 
+void ApiWrap::exportMessageAsBase64(
+		not_null<HistoryItem*> item,
+		Fn<void(const QString&)> done,
+		Fn<void()> fail) {
+	LOG(("AyuApi: exportMessageAsBase64 request start msg=%1 peer=%2 local=%3")
+		.arg(item->id.bare)
+		.arg(item->history()->peer->id.value)
+		.arg(item->isLocal()));
+	if (item->isLocal()) {
+		LOG(("AyuApi: exportMessageAsBase64 local message, fallback"));
+		if (fail) {
+			fail();
+		}
+		return;
+	}
+
+	const auto ids = QVector<MTPInputMessage>{
+		MTP_inputMessageID(MTP_int(item->id))
+	};
+	const auto requestDone = [=](
+			const MTPmessages_Messages &result,
+			const MTP::Response &response) {
+		Q_UNUSED(result);
+		auto buffer = response.reply;
+		QByteArray bytes(
+			reinterpret_cast<const char*>(buffer.data()),
+			buffer.size() * sizeof(mtpPrime));
+		LOG(("AyuApi: exportMessageAsBase64 request ok msg=%1 bytes=%2")
+			.arg(item->id.bare)
+			.arg(bytes.size()));
+		done(bytes.toBase64(QByteArray::Base64UrlEncoding));
+	};
+	if (item->history()->peer->isChannel()) {
+		request(MTPchannels_GetMessages(
+			item->history()->peer->asChannel()->inputChannel(),
+			MTP_vector<MTPInputMessage>(ids)
+		)).done(requestDone).fail([=](const MTP::Error &error, mtpRequestId) {
+			LOG(("AyuApi: exportMessageAsBase64 channel request failed msg=%1 err=%2")
+				.arg(item->id.bare)
+				.arg(error.type()));
+			if (fail) {
+				fail();
+			}
+		}).send();
+	} else {
+		request(MTPmessages_GetMessages(
+			MTP_vector<MTPInputMessage>(ids)
+		)).done(requestDone).fail([=](const MTP::Error &error, mtpRequestId) {
+			LOG(("AyuApi: exportMessageAsBase64 request failed msg=%1 err=%2")
+				.arg(item->id.bare)
+				.arg(error.type()));
+			if (fail) {
+				fail();
+			}
+		}).send();
+	}
+}
+
 QVector<MTPInputMessage> ApiWrap::collectMessageIds(
 		const MessageDataRequests &requests) {
 	auto result = QVector<MTPInputMessage>();

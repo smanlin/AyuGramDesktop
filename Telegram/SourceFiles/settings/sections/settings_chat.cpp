@@ -87,6 +87,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 
 #include <QAction>
 
@@ -1832,7 +1833,9 @@ void SetupExport(
 
 	AddButtonWithIcon(
 		container,
-		tr::lng_settings_experimental(),
+		tr::lng_settings_experimental() | rpl::map([](QString s) {
+			return AyuHantHelper(qsl("lng_settings_experimental"), s);
+		}),
 		st::settingsButton,
 		{ &st::menuIconExperimental }
 	)->addClickHandler([=] {

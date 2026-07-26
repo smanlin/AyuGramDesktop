@@ -12,6 +12,7 @@
 #include "ayu/features/filters/filters_cache_controller.h"
 #include "ayu/ui/boxes/import_filters_box.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
@@ -28,11 +29,13 @@
 #include "ui/vertical_list.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_controller.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include <QRegularExpression>
 
 namespace Settings {
 
@@ -45,11 +48,11 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	auto *settings = &AyuSettings::getInstance();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_RegexFilters());
+	builder.addSubsectionTitle(AYU_T(ayu_RegexFilters));
 
 	const auto enabledButton = builder.addButton({
 		.id = u"ayu/filtersEnabled"_q,
-		.title = tr::ayu_RegexFiltersEnable(),
+		.title = AYU_T(ayu_RegexFiltersEnable),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabled()),
 	});
@@ -67,7 +70,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	const auto sharedButton = builder.addButton({
 		.id = u"ayu/filtersEnabledInChats"_q,
 		.altIds = { u"ayu/filtersInChats"_q },
-		.title = tr::ayu_RegexFiltersEnableSharedInChats(),
+		.title = AYU_T(ayu_RegexFiltersEnableSharedInChats),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabledInChats()),
 	});
@@ -84,7 +87,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 
 	const auto blockedButton = builder.addButton({
 		.id = u"ayu/hideFromBlocked"_q,
-		.title = tr::ayu_FiltersHideFromBlocked(),
+		.title = AYU_T(ayu_FiltersHideFromBlocked),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->hideFromBlocked()),
 	});
@@ -102,6 +105,203 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	builder.addSkip();
 }
 
+void BuildDeleteBypassKeywords(SectionBuilder &builder) {
+	auto *settings = &AyuSettings::getInstance();
+
+	builder.addDivider();
+	builder.addSkip();
+	builder.addSubsectionTitle(rpl::single(AyuHantHelper(
+		qsl("ayu_DeleteBypassKeywordsTitle"),
+		qsl("Delete by keywords"))));
+
+	const auto enabledButton = builder.addButton({
+		.id = u"ayu/deleteBypassKeywordsEnabled"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsEnable"),
+			qsl("Enable direct deletion by keywords"))),
+		.st = &st::settingsButtonNoIcon,
+		.toggled = rpl::single(settings->deleteBypassKeywordsEnabled()),
+	});
+	if (enabledButton) {
+		enabledButton->toggledValue(
+		) | rpl::filter([=](bool enabled) {
+			return (enabled != settings->deleteBypassKeywordsEnabled());
+		}) | on_next([=](bool enabled) {
+			AyuSettings::getInstance().setDeleteBypassKeywordsEnabled(enabled);
+		}, enabledButton->lifetime());
+	}
+
+	const auto regexModeButton = builder.addButton({
+		.id = u"ayu/deleteBypassKeywordsRegexEnabled"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsRegexEnable"),
+			qsl("Enable regex matching"))),
+		.st = &st::settingsButtonNoIcon,
+		.toggled = rpl::single(settings->deleteBypassKeywordsRegexEnabled()),
+	});
+	if (regexModeButton) {
+		regexModeButton->toggledValue(
+		) | rpl::filter([=](bool enabled) {
+			return (enabled != settings->deleteBypassKeywordsRegexEnabled());
+		}) | on_next([=](bool enabled) {
+			AyuSettings::getInstance().setDeleteBypassKeywordsRegexEnabled(enabled);
+		}, regexModeButton->lifetime());
+	}
+
+	const auto controller = builder.controller();
+	builder.addButton({
+		.id = u"ayu/deleteBypassKeywordsEdit"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassKeywordsEdit"),
+			qsl("Edit keyword list"))),
+		.st = &st::settingsButtonNoIcon,
+		.onClick = [=] {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+					box->setTitle(rpl::single(AyuHantHelper(
+						qsl("ayu_DeleteBypassKeywordsEdit"),
+						qsl("Edit keyword list"))));
+
+				auto initial = QString();
+				for (const auto &keyword : AyuSettings::getInstance().deleteBypassKeywords()) {
+					if (!initial.isEmpty()) {
+						initial += u"\n"_q;
+					}
+					initial += keyword;
+				}
+
+				const auto input = box->addRow(
+					object_ptr<Ui::InputField>(
+						box->verticalLayout(),
+						st::defaultInputField,
+						Ui::InputField::Mode::MultiLine,
+							rpl::single(AyuHantHelper(
+								qsl("ayu_DeleteBypassKeywordsPlaceholder"),
+								qsl("Split by new line, comma, or semicolon")))),
+					st::settingsCheckboxPadding);
+				input->setText(initial);
+
+				const auto saveAndClose = [=] {
+					auto normalized = input->getTextWithTags().text;
+					normalized.replace(u"\r"_q, QString());
+
+					std::vector<QString> keywords;
+					const auto parts = normalized.split(
+						QRegularExpression(u"[\\n,;\\x{FF0C}\\x{FF1B}]+"_q),
+						Qt::SkipEmptyParts);
+					for (const auto &row : parts) {
+						const auto keyword = row.trimmed();
+						if (!keyword.isEmpty()) {
+							keywords.push_back(keyword);
+						}
+					}
+
+					AyuSettings::getInstance().setDeleteBypassKeywords(keywords);
+					box->closeBox();
+				};
+
+				input->submits() | rpl::on_next(saveAndClose, input->lifetime());
+				box->addButton(tr::lng_settings_save(), saveAndClose);
+				box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+				box->setFocusCallback([=] { input->setFocusFast(); });
+			}));
+		},
+	});
+	builder.addDividerText(rpl::single(AyuHantHelper(
+		qsl("ayu_DeleteBypassKeywordsDescription"),
+		qsl("Messages containing these keywords are deleted directly and not saved in anti-delete history."))));
+	builder.addDividerText(rpl::single(AyuHantHelper(
+		qsl("ayu_DeleteBypassKeywordsRegexDescription"),
+		qsl("When regex matching is enabled, each line in the list is treated as a regular expression (invalid patterns are ignored)."))));
+
+	builder.addSkip();
+}
+
+void BuildDeleteBypassUserIds(SectionBuilder &builder) {
+	auto *settings = &AyuSettings::getInstance();
+	const auto controller = builder.controller();
+
+	const auto enabledButton = builder.addButton({
+		.id = u"ayu/deleteBypassUserIdsEnabled"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassUserIdsEnable"),
+			qsl("Enable direct deletion by user IDs"))),
+		.st = &st::settingsButtonNoIcon,
+		.toggled = rpl::single(settings->deleteBypassUserIdsEnabled()),
+	});
+	if (enabledButton) {
+		enabledButton->toggledValue(
+		) | rpl::filter([=](bool enabled) {
+			return (enabled != settings->deleteBypassUserIdsEnabled());
+		}) | on_next([=](bool enabled) {
+			AyuSettings::getInstance().setDeleteBypassUserIdsEnabled(enabled);
+		}, enabledButton->lifetime());
+	}
+
+	builder.addButton({
+		.id = u"ayu/deleteBypassUserIdsEdit"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_DeleteBypassUserIdsEdit"),
+			qsl("Edit user list"))),
+		.st = &st::settingsButtonNoIcon,
+		.onClick = [=] {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+					box->setTitle(rpl::single(AyuHantHelper(
+						qsl("ayu_DeleteBypassUserIdsEdit"),
+						qsl("Edit user list"))));
+
+				auto initial = QString();
+				for (const auto userId : AyuSettings::getInstance().deleteBypassUserIds()) {
+					if (!initial.isEmpty()) {
+						initial += u"\n"_q;
+					}
+					initial += QString::number(userId);
+				}
+
+				const auto input = box->addRow(
+					object_ptr<Ui::InputField>(
+						box->verticalLayout(),
+						st::defaultInputField,
+						Ui::InputField::Mode::MultiLine,
+							rpl::single(AyuHantHelper(
+								qsl("ayu_DeleteBypassUserIdsPlaceholder"),
+								qsl("Split by new line, comma, or semicolon (numbers only)")))),
+					st::settingsCheckboxPadding);
+				input->setText(initial);
+
+				const auto saveAndClose = [=] {
+					auto normalized = input->getTextWithTags().text;
+					normalized.replace(u"\r"_q, QString());
+
+					std::vector<long long> userIds;
+					const auto parts = normalized.split(
+						QRegularExpression(u"[\\n,;\\x{FF0C}\\x{FF1B}]+"_q),
+						Qt::SkipEmptyParts);
+					for (const auto &row : parts) {
+						bool ok = false;
+						const auto val = row.trimmed().toLongLong(&ok);
+						if (ok) {
+							userIds.push_back(val);
+						}
+					}
+
+					AyuSettings::getInstance().setDeleteBypassUserIds(userIds);
+					box->closeBox();
+				};
+
+				input->submits() | rpl::on_next(saveAndClose, input->lifetime());
+				box->addButton(tr::lng_settings_save(), saveAndClose);
+				box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+				box->setFocusCallback([=] { input->setFocusFast(); });
+			}));
+		},
+	});
+	builder.addDividerText(rpl::single(AyuHantHelper(
+		qsl("ayu_DeleteBypassUserIdsDescription"),
+		qsl("Messages from these users are deleted directly and not saved in anti-delete history."))));
+
+	builder.addSkip();
+}
+
 void BuildShared(SectionBuilder &builder) {
 	builder.addDivider();
 	builder.addSkip();
@@ -109,7 +309,7 @@ void BuildShared(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 	builder.addButton({
 		.id = u"ayu/sharedFilters"_q,
-		.title = tr::ayu_RegexFiltersShared(),
+		.title = AYU_T(ayu_RegexFiltersShared),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {
 			controller->dialogId = std::nullopt;
@@ -125,7 +325,7 @@ void BuildShadowBan(SectionBuilder &builder) {
 	builder.addButton({
 		.id = u"ayu/shadowBanIds"_q,
 		.altIds = { u"ayu/shadowBanList"_q },
-		.title = tr::ayu_FiltersShadowBan(),
+		.title = AYU_T(ayu_FiltersShadowBan),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {
 			controller->dialogId = std::nullopt;
@@ -177,6 +377,8 @@ const auto kMeta = BuildHelper({
 	.icon = &st::menuIconTagFilter,
 }, [](SectionBuilder &builder) {
 	BuildFiltersSettings(builder);
+	BuildDeleteBypassKeywords(builder);
+	BuildDeleteBypassUserIds(builder);
 	BuildShared(builder);
 	BuildShadowBan(builder);
 	BuildPerDialog(builder);
@@ -185,12 +387,12 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuFilters::title() {
-	return tr::ayu_CategoryFilters();
+	return AYU_T(ayu_CategoryFilters);
 }
 
 void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	addAction(
-		tr::ayu_FiltersMenuSelectChat(tr::now),
+		AYU_S(ayu_FiltersMenuSelectChat),
 		[=] {
 			if (const auto window = Core::App().activeWindow()) {
 				if (const auto controller = window->sessionController()) {
@@ -208,7 +410,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 							controller->showSettings(AyuFiltersList::Id());
 							return true;
 						},
-						tr::ayu_FiltersMenuSelectChat(),
+							AYU_T(ayu_FiltersMenuSelectChat),
 						nullptr,
 						types);
 				}
@@ -217,7 +419,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconSearch);
 	addAction({ .isSeparator = true });
 	addAction(
-		tr::ayu_FiltersMenuImport(tr::now),
+		AYU_S(ayu_FiltersMenuImport),
 		[=] {
 			auto box = Box(Ui::FillImportFiltersBox, true);
 			Ui::show(std::move(box));
@@ -225,7 +427,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconArchive);
 	if (AyuDatabase::hasFilters()) {
 		addAction(
-			tr::ayu_FiltersMenuExport(tr::now),
+			AYU_S(ayu_FiltersMenuExport),
 			[=] {
 				auto box = Box(Ui::FillImportFiltersBox, false);
 				Ui::show(std::move(box));
@@ -234,7 +436,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	}
 	addAction({ .isSeparator = true });
 	addAction(
-		tr::ayu_FiltersMenuClear(tr::now),
+		AYU_S(ayu_FiltersMenuClear),
 		[=] {
 			auto callback = [=](Fn<void()> &&close) {
 				AyuDatabase::deleteAllFilters();
@@ -244,9 +446,9 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 				close();
 			};
 			auto box = Ui::MakeConfirmBox({
-				.text = tr::ayu_FiltersClearPopupText(),
+				.text = AYU_S(ayu_FiltersClearPopupText),
 				.confirmed = callback,
-				.confirmText = tr::ayu_FiltersClearPopupActionText()
+				.confirmText = AYU_S(ayu_FiltersClearPopupActionText)
 			});
 			Ui::show(std::move(box));
 		},

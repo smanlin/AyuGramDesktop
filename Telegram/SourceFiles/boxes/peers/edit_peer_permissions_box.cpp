@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_participants_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
 #include "boxes/edit_privacy_box.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "settings/settings_power_saving.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -54,6 +55,22 @@ constexpr auto kSlowmodeValues = 8;
 constexpr auto kBoostsUnrestrictValues = 5;
 constexpr auto kForceDisableTooltipDuration = 3 * crl::time(1000);
 constexpr auto kDefaultChargeStars = 10;
+
+[[nodiscard]] QString PermissionLabelStickers() {
+	return AyuHantHelper(qsl("ayu_perm_send_stickers"), qsl("Stickers"));
+}
+
+[[nodiscard]] QString PermissionLabelGifs() {
+	return AyuHantHelper(qsl("ayu_perm_send_gifs"), qsl("GIFs"));
+}
+
+[[nodiscard]] QString PermissionLabelInlineBots() {
+	return AyuHantHelper(qsl("ayu_perm_use_inline_bots"), qsl("Use inline bots"));
+}
+
+[[nodiscard]] QString PermissionLabelGames() {
+	return AyuHantHelper(qsl("ayu_perm_send_games"), qsl("Send games"));
+}
 
 [[nodiscard]] auto Dependencies(PowerSaving::Flags)
 -> std::vector<std::pair<PowerSaving::Flag, PowerSaving::Flag>> {
@@ -78,23 +95,20 @@ constexpr auto kDefaultChargeStars = 10;
 	auto first = std::vector<RestrictionLabel>{
 		{ Flag::SendOther, tr::lng_rights_chat_send_text(tr::now) },
 	};
-		auto media = std::vector<RestrictionLabel>{
-			{ Flag::SendPhotos, tr::lng_rights_chat_photos(tr::now) },
-			{ Flag::SendVideos, tr::lng_rights_chat_videos(tr::now) },
-			{ Flag::SendVideoMessages, tr::lng_rights_chat_video_messages(tr::now) },
-			{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
-			{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
-			{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
-			{
-				Flag::SendStickers
-					| Flag::SendGifs
-					| Flag::SendInline
-					| Flag::SendGames,
-				tr::lng_rights_chat_stickers(tr::now),
-			},
-			{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
-			{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
-		};
+	auto media = std::vector<RestrictionLabel>{
+		{ Flag::SendPhotos, tr::lng_rights_chat_photos(tr::now) },
+		{ Flag::SendVideos, tr::lng_rights_chat_videos(tr::now) },
+		{ Flag::SendVideoMessages, tr::lng_rights_chat_video_messages(tr::now) },
+		{ Flag::SendMusic, tr::lng_rights_chat_music(tr::now) },
+		{ Flag::SendVoiceMessages, tr::lng_rights_chat_voice_messages(tr::now) },
+		{ Flag::SendFiles, tr::lng_rights_chat_files(tr::now) },
+		{ Flag::SendStickers, PermissionLabelStickers() },
+		{ Flag::SendGifs, PermissionLabelGifs() },
+		{ Flag::SendInline, PermissionLabelInlineBots() },
+		{ Flag::SendGames, PermissionLabelGames() },
+		{ Flag::EmbedLinks, tr::lng_rights_chat_send_links(tr::now) },
+		{ Flag::SendPolls, tr::lng_rights_chat_send_polls(tr::now) },
+	};
 	auto second = std::vector<RestrictionLabel>{
 		{ Flag::AddParticipants, tr::lng_rights_chat_add_members(tr::now) },
 		{ Flag::CreateTopics, tr::lng_rights_group_add_topics(tr::now) },

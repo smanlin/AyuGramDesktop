@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_message_reaction_id.h"
 #include "data/stickers/data_custom_emoji.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "lang/lang_keys.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_utilities.h"
@@ -36,6 +37,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace AdminLog {
 namespace {
+
+[[nodiscard]] QString PermissionLabelStickers() {
+	return AyuHantHelper(qsl("ayu_perm_send_stickers"), qsl("Stickers"));
+}
+
+[[nodiscard]] QString PermissionLabelGifs() {
+	return AyuHantHelper(qsl("ayu_perm_send_gifs"), qsl("GIFs"));
+}
+
+[[nodiscard]] QString PermissionLabelInlineBots() {
+	return AyuHantHelper(qsl("ayu_perm_use_inline_bots"), qsl("Use inline bots"));
+}
+
+[[nodiscard]] QString PermissionLabelGames() {
+	return AyuHantHelper(qsl("ayu_perm_send_games"), qsl("Send games"));
+}
 
 TextWithEntities PrepareText(
 		const QString &value,
@@ -259,6 +276,24 @@ const auto CollectChanges = [](
 		+ withPrefix(minusFlags & ~plusFlags, kMinus);
 };
 
+const auto CollectChangesText = [](
+		auto &textMap,
+		auto plusFlags,
+		auto minusFlags) {
+	auto withPrefix = [&textMap](auto flags, QChar prefix) {
+		auto result = QString();
+		for (const auto &entry : textMap) {
+			if (flags & entry.first) {
+				result.append('\n' + (prefix + entry.second));
+			}
+		}
+		return result;
+	};
+	const auto kMinus = QChar(0x2212);
+	return withPrefix(plusFlags & ~minusFlags, '+')
+		+ withPrefix(minusFlags & ~plusFlags, kMinus);
+};
+
 TextWithEntities GenerateAdminChangeText(
 		not_null<ChannelData*> channel,
 		const TextWithEntities &user,
@@ -316,37 +351,35 @@ QString GeneratePermissionsChangeText(
 	using Flag = ChatRestriction;
 	using Flags = ChatRestrictions;
 
-	auto phraseMap = std::map<Flags, tr::phrase<>>{
-		{ Flag::ViewMessages, tr::lng_admin_log_banned_view_messages },
-		{ Flag::SendOther, tr::lng_admin_log_banned_send_messages },
-		{ Flag::SendPhotos, tr::lng_admin_log_banned_send_photos },
-		{ Flag::SendVideos, tr::lng_admin_log_banned_send_videos },
-		{ Flag::SendMusic, tr::lng_admin_log_banned_send_music },
-		{ Flag::SendFiles, tr::lng_admin_log_banned_send_files },
-		{
-			Flag::SendVoiceMessages,
-			tr::lng_admin_log_banned_send_voice_messages },
+	// Keep the same order as the permissions UI to avoid confusing admin-log diffs.
+	const auto textMap = std::vector<std::pair<Flags, QString>>{
+		{ Flag::SendOther, tr::lng_admin_log_banned_send_messages(tr::now) },
+		{ Flag::SendPhotos, tr::lng_admin_log_banned_send_photos(tr::now) },
+		{ Flag::SendVideos, tr::lng_admin_log_banned_send_videos(tr::now) },
 		{
 			Flag::SendVideoMessages,
-			tr::lng_admin_log_banned_send_video_messages },
-			{
-				Flag::SendStickers
-					| Flag::SendGifs
-					| Flag::SendInline
-					| Flag::SendGames,
-				tr::lng_admin_log_banned_send_stickers,
-			},
-		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links },
-		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
-		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
-		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },
-		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics },
-		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
-		{ Flag::EditRank, isUserSpecific
+			tr::lng_admin_log_banned_send_video_messages(tr::now) },
+		{ Flag::SendMusic, tr::lng_admin_log_banned_send_music(tr::now) },
+		{
+			Flag::SendVoiceMessages,
+			tr::lng_admin_log_banned_send_voice_messages(tr::now) },
+		{ Flag::SendFiles, tr::lng_admin_log_banned_send_files(tr::now) },
+		{ Flag::SendStickers, PermissionLabelStickers() },
+		{ Flag::SendGifs, PermissionLabelGifs() },
+		{ Flag::SendInline, PermissionLabelInlineBots() },
+		{ Flag::SendGames, PermissionLabelGames() },
+		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links(tr::now) },
+		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls(tr::now) },
+		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users(tr::now) },
+		{ Flag::CreateTopics, tr::lng_admin_log_admin_create_topics(tr::now) },
+		{ Flag::EditRank, (isUserSpecific
 			? tr::lng_admin_log_banned_edit_rank_single
-			: tr::lng_admin_log_banned_edit_rank },
+			: tr::lng_admin_log_banned_edit_rank)(tr::now) },
+		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages(tr::now) },
+		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info(tr::now) },
+		{ Flag::ViewMessages, tr::lng_admin_log_banned_view_messages(tr::now) },
 	};
-	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
+	return CollectChangesText(textMap, prevRights.flags, newRights.flags);
 }
 
 std::optional<ChatRestrictionsInfo> ParticipantRestrictionsInfo(

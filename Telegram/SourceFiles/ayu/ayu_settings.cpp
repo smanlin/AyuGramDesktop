@@ -18,7 +18,9 @@
 #include "main/main_session.h"
 #include "rpl/combine.h"
 #include "ui/ayu_userpic.h"
+#include "ui/text/text.h"
 #include "window/window_controller.h"
+#include "window/themes/window_theme.h"
 
 #include <fstream>
 #include <QApplication>
@@ -37,6 +39,41 @@ void repaintApp() {
 	for (QWidget *widget : QApplication::allWidgets()) {
 		widget->update();
 	}
+}
+
+[[nodiscard]] QColor ParseSpoilerColorOrDefault(
+		const QString &value,
+		const char *fallbackHex) {
+	const auto parsed = QColor(value.trimmed());
+	return parsed.isValid() ? parsed : QColor(fallbackHex);
+}
+
+void ApplyRevealedSpoilerTextColors(const AyuSettings &settings) {
+	// Legacy-compatible mapping:
+	// Dark theme -> use Light* colors, Light theme -> use Dark* colors.
+	const auto useLightSet = Window::Theme::IsNightMode();
+	const auto peerFixed = useLightSet
+		? ParseSpoilerColorOrDefault(
+			settings.alwaysShowSpoilerTextColorLightPeer(),
+			"#81D8D0")
+		: ParseSpoilerColorOrDefault(
+			settings.alwaysShowSpoilerTextColorDarkPeer(),
+			"#B0C4DE");
+	const auto selfFixed = useLightSet
+		? ParseSpoilerColorOrDefault(
+			settings.alwaysShowSpoilerTextColorLightSelf(),
+			"#4A90E2")
+		: ParseSpoilerColorOrDefault(
+			settings.alwaysShowSpoilerTextColorDarkSelf(),
+			"#E0F0FF");
+	Ui::Text::SetRevealedSpoilerTextColors({
+		// Keep spoiler text tint stable across themes to avoid dark/light
+		// route mismatch between forks/trees.
+		.darkPeer = peerFixed,
+		.darkSelf = selfFixed,
+		.lightPeer = peerFixed,
+		.lightSelf = selfFixed,
+	});
 }
 
 rpl::lifetime lifetime; // idk reactivity dies when placed in `GhostModeAccountSettings` as field
@@ -322,6 +359,7 @@ void from_json(const nlohmann::json &j, MessageShotSettings &s) {
 AyuSettings::AyuSettings()
 : _appIcon(AyuAssets::DEFAULT_ICON)
 , _editedMark(Core::IsAppLaunched() ? tr::lng_edited(tr::now) : QString("edited")) {
+	ApplyRevealedSpoilerTextColors(*this);
 }
 
 AyuSettings &AyuSettings::getInstance() {
@@ -379,6 +417,7 @@ void AyuSettings::load() {
 	}
 
 	settings.validate();
+	ApplyRevealedSpoilerTextColors(settings);
 
 	MTP::DcOptions::SetImproveDC5(settings.improveDC5Connection());
 }
@@ -506,6 +545,42 @@ void AyuSettings::setSaveMessagesHistory(bool val) {
 	save();
 }
 
+void AyuSettings::setSaveDeletedTypeText(bool val) {
+	if (_saveDeletedTypeText.current() == val) return;
+	_saveDeletedTypeText = val;
+	save();
+}
+
+void AyuSettings::setSaveDeletedTypeVisual(bool val) {
+	if (_saveDeletedTypeVisual.current() == val) return;
+	_saveDeletedTypeVisual = val;
+	save();
+}
+
+void AyuSettings::setSaveDeletedTypeAudio(bool val) {
+	if (_saveDeletedTypeAudio.current() == val) return;
+	_saveDeletedTypeAudio = val;
+	save();
+}
+
+void AyuSettings::setSaveDeletedTypeSticker(bool val) {
+	if (_saveDeletedTypeSticker.current() == val) return;
+	_saveDeletedTypeSticker = val;
+	save();
+}
+
+void AyuSettings::setSaveDeletedTypeGif(bool val) {
+	if (_saveDeletedTypeGif.current() == val) return;
+	_saveDeletedTypeGif = val;
+	save();
+}
+
+void AyuSettings::setSaveDeletedTypeEmoji(bool val) {
+	if (_saveDeletedTypeEmoji.current() == val) return;
+	_saveDeletedTypeEmoji = val;
+	save();
+}
+
 void AyuSettings::setSaveForBots(bool val) {
 	if (_saveForBots.current() == val) return;
 	_saveForBots = val;
@@ -515,6 +590,36 @@ void AyuSettings::setSaveForBots(bool val) {
 void AyuSettings::setExcludeBotsInGroups(bool val) {
 	if (_excludeBotsInGroups.current() == val) return;
 	_excludeBotsInGroups = val;
+	save();
+}
+
+void AyuSettings::setDeleteBypassKeywordsEnabled(bool val) {
+	if (_deleteBypassKeywordsEnabled.current() == val) return;
+	_deleteBypassKeywordsEnabled = val;
+	save();
+}
+
+void AyuSettings::setDeleteBypassKeywordsRegexEnabled(bool val) {
+	if (_deleteBypassKeywordsRegexEnabled.current() == val) return;
+	_deleteBypassKeywordsRegexEnabled = val;
+	save();
+}
+
+void AyuSettings::setDeleteBypassKeywords(const std::vector<QString> &val) {
+	if (_deleteBypassKeywords.current() == val) return;
+	_deleteBypassKeywords = val;
+	save();
+}
+
+void AyuSettings::setDeleteBypassUserIdsEnabled(bool val) {
+	if (_deleteBypassUserIdsEnabled.current() == val) return;
+	_deleteBypassUserIdsEnabled = val;
+	save();
+}
+
+void AyuSettings::setDeleteBypassUserIds(const std::vector<long long> &val) {
+	if (_deleteBypassUserIds.current() == val) return;
+	_deleteBypassUserIds = val;
 	save();
 }
 
@@ -913,15 +1018,34 @@ void AyuSettings::setShowPeerId(PeerIdDisplay val) {
 	save();
 }
 
+void AyuSettings::setShowMessageId(bool val) {
+	if (_showMessageId.current() == val) return;
+	_showMessageId = val;
+	save();
+}
+
 void AyuSettings::setShowMessageSeconds(bool val) {
 	if (_showMessageSeconds.current() == val) return;
 	_showMessageSeconds = val;
 	save();
 }
 
+void AyuSettings::setShowViewJson(bool val) {
+	if (_showViewJson.current() == val) return;
+	_showViewJson = val;
+	save();
+}
+
 void AyuSettings::setShowMessageShot(bool val) {
 	if (_showMessageShot.current() == val) return;
 	_showMessageShot = val;
+	save();
+}
+
+void AyuSettings::setShowIdentityBadgeIcons(bool val) {
+	if (_showIdentityBadgeIcons.current() == val) return;
+	_showIdentityBadgeIcons = val;
+	repaintApp();
 	save();
 }
 
@@ -995,6 +1119,18 @@ void AyuSettings::setSingleCornerRadius(bool val) {
 	save();
 }
 
+void AyuSettings::setAlwaysShowSpoilerText(bool val) {
+	if (_alwaysShowSpoilerText.current() == val) return;
+	_alwaysShowSpoilerText = val;
+	save();
+}
+
+void AyuSettings::setAlwaysShowSpoilerMedia(bool val) {
+	if (_alwaysShowSpoilerMedia.current() == val) return;
+	_alwaysShowSpoilerMedia = val;
+	save();
+}
+
 void to_json(nlohmann::json &j, const AyuSettings &s) {
 	std::map<std::string, GhostModeAccountSettings> ghostAccounts;
 	for (const auto &[key, value] : s._ghostAccounts) {
@@ -1006,7 +1142,18 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"useGlobalGhostMode", s._useGlobalGhostMode.current()},
 		{"saveDeletedMessages", s._saveDeletedMessages.current()},
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
+		{"saveDeletedTypeText", s._saveDeletedTypeText.current()},
+		{"saveDeletedTypeVisual", s._saveDeletedTypeVisual.current()},
+		{"saveDeletedTypeAudio", s._saveDeletedTypeAudio.current()},
+		{"saveDeletedTypeSticker", s._saveDeletedTypeSticker.current()},
+		{"saveDeletedTypeGif", s._saveDeletedTypeGif.current()},
+		{"saveDeletedTypeEmoji", s._saveDeletedTypeEmoji.current()},
 		{"saveForBots", s._saveForBots.current()},
+		{"deleteBypassKeywordsEnabled", s._deleteBypassKeywordsEnabled.current()},
+		{"deleteBypassKeywordsRegexEnabled", s._deleteBypassKeywordsRegexEnabled.current()},
+		{"deleteBypassKeywords", s._deleteBypassKeywords.current()},
+		{"deleteBypassUserIdsEnabled", s._deleteBypassUserIdsEnabled.current()},
+		{"deleteBypassUserIds", s._deleteBypassUserIds.current()},
 		{"excludeBotsInGroups", s._excludeBotsInGroups.current()},
 		{"shadowBanIds", s._shadowBanIds},
 		{"filtersEnabled", s._filtersEnabled.current()},
@@ -1073,8 +1220,11 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"channelBottomButton", s._channelBottomButton.current()},
 		{"quickAdminShortcuts", s._quickAdminShortcuts.current()},
 		{"showPeerId", s._showPeerId.current()},
+		{"showMessageId", s._showMessageId.current()},
 		{"showMessageSeconds", s._showMessageSeconds.current()},
+		{"showViewJson", s._showViewJson.current()},
 		{"showMessageShot", s._showMessageShot.current()},
+		{"showIdentityBadgeIcons", s._showIdentityBadgeIcons.current()},
 		{"filterZalgo", s._filterZalgo.current()},
 		{"stickerConfirmation", s._stickerConfirmation.current()},
 		{"gifConfirmation", s._gifConfirmation.current()},
@@ -1085,6 +1235,12 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"crashReporting", s._crashReporting.current()},
 		{"avatarCorners", s._avatarCorners.current()},
 		{"singleCornerRadius", s._singleCornerRadius.current()},
+		{"alwaysShowSpoilerText", s._alwaysShowSpoilerText.current()},
+		{"alwaysShowSpoilerMedia", s._alwaysShowSpoilerMedia.current()},
+		{"alwaysShowSpoilerTextColorDarkPeer", s._alwaysShowSpoilerTextColorDarkPeer},
+		{"alwaysShowSpoilerTextColorDarkSelf", s._alwaysShowSpoilerTextColorDarkSelf},
+		{"alwaysShowSpoilerTextColorLightPeer", s._alwaysShowSpoilerTextColorLightPeer},
+		{"alwaysShowSpoilerTextColorLightSelf", s._alwaysShowSpoilerTextColorLightSelf},
 		{"improveDC5Connection", s._improveDC5Connection.current()},
 		{"messageShotSettings", s._messageShotSettings}
 	};
@@ -1105,7 +1261,18 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._useGlobalGhostMode = j.value("useGlobalGhostMode", defaults._useGlobalGhostMode.current());
 	s._saveDeletedMessages = j.value("saveDeletedMessages", defaults._saveDeletedMessages.current());
 	s._saveMessagesHistory = j.value("saveMessagesHistory", defaults._saveMessagesHistory.current());
+	s._saveDeletedTypeText = j.value("saveDeletedTypeText", defaults._saveDeletedTypeText.current());
+	s._saveDeletedTypeVisual = j.value("saveDeletedTypeVisual", defaults._saveDeletedTypeVisual.current());
+	s._saveDeletedTypeAudio = j.value("saveDeletedTypeAudio", defaults._saveDeletedTypeAudio.current());
+	s._saveDeletedTypeSticker = j.value("saveDeletedTypeSticker", defaults._saveDeletedTypeSticker.current());
+	s._saveDeletedTypeGif = j.value("saveDeletedTypeGif", defaults._saveDeletedTypeGif.current());
+	s._saveDeletedTypeEmoji = j.value("saveDeletedTypeEmoji", defaults._saveDeletedTypeEmoji.current());
 	s._saveForBots = j.value("saveForBots", defaults._saveForBots.current());
+	s._deleteBypassKeywordsEnabled = j.value("deleteBypassKeywordsEnabled", defaults._deleteBypassKeywordsEnabled.current());
+	s._deleteBypassKeywordsRegexEnabled = j.value("deleteBypassKeywordsRegexEnabled", defaults._deleteBypassKeywordsRegexEnabled.current());
+	s._deleteBypassKeywords = j.value("deleteBypassKeywords", defaults._deleteBypassKeywords.current());
+	s._deleteBypassUserIdsEnabled = j.value("deleteBypassUserIdsEnabled", defaults._deleteBypassUserIdsEnabled.current());
+	s._deleteBypassUserIds = j.value("deleteBypassUserIds", defaults._deleteBypassUserIds.current());
 	s._excludeBotsInGroups = j.value("excludeBotsInGroups", defaults._excludeBotsInGroups.current());
 	s._shadowBanIds = j.value("shadowBanIds", defaults._shadowBanIds);
 	s._filtersEnabled = j.value("filtersEnabled", defaults._filtersEnabled.current());
@@ -1172,8 +1339,11 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());
 	s._quickAdminShortcuts = j.value("quickAdminShortcuts", defaults._quickAdminShortcuts.current());
 	s._showPeerId = j.value("showPeerId", defaults._showPeerId.current());
+	s._showMessageId = j.value("showMessageId", defaults._showMessageId.current());
 	s._showMessageSeconds = j.value("showMessageSeconds", defaults._showMessageSeconds.current());
+	s._showViewJson = j.value("showViewJson", defaults._showViewJson.current());
 	s._showMessageShot = j.value("showMessageShot", defaults._showMessageShot.current());
+	s._showIdentityBadgeIcons = j.value("showIdentityBadgeIcons", defaults._showIdentityBadgeIcons.current());
 	s._filterZalgo = j.value("filterZalgo", defaults._filterZalgo.current());
 	s._stickerConfirmation = j.value("stickerConfirmation", defaults._stickerConfirmation.current());
 	s._gifConfirmation = j.value("gifConfirmation", defaults._gifConfirmation.current());
@@ -1184,6 +1354,20 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());
 	s._avatarCorners = j.value("avatarCorners", defaults._avatarCorners.current());
 	s._singleCornerRadius = j.value("singleCornerRadius", defaults._singleCornerRadius.current());
+	s._alwaysShowSpoilerText = j.value("alwaysShowSpoilerText", defaults._alwaysShowSpoilerText.current());
+	s._alwaysShowSpoilerMedia = j.value("alwaysShowSpoilerMedia", defaults._alwaysShowSpoilerMedia.current());
+	s._alwaysShowSpoilerTextColorDarkPeer = j.value(
+		"alwaysShowSpoilerTextColorDarkPeer",
+		defaults._alwaysShowSpoilerTextColorDarkPeer);
+	s._alwaysShowSpoilerTextColorDarkSelf = j.value(
+		"alwaysShowSpoilerTextColorDarkSelf",
+		defaults._alwaysShowSpoilerTextColorDarkSelf);
+	s._alwaysShowSpoilerTextColorLightPeer = j.value(
+		"alwaysShowSpoilerTextColorLightPeer",
+		defaults._alwaysShowSpoilerTextColorLightPeer);
+	s._alwaysShowSpoilerTextColorLightSelf = j.value(
+		"alwaysShowSpoilerTextColorLightSelf",
+		defaults._alwaysShowSpoilerTextColorLightSelf);
 	s._improveDC5Connection = j.value("improveDC5Connection", defaults._improveDC5Connection.current());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {

@@ -1290,11 +1290,18 @@ void Element::checkSpecialOnlyEmoji() {
 }
 
 void Element::hideSpoilers() {
+	const auto &settings = AyuSettings::getInstance();
 	if (_text.hasSpoilers()) {
-		_text.setSpoilerRevealed(false, anim::type::instant);
+		_text.setSpoilerRevealed(
+			settings.alwaysShowSpoilerText(),
+			anim::type::instant);
 	}
 	if (_media) {
-		_media->hideSpoilers();
+		if (settings.alwaysShowSpoilerMedia()) {
+			_media->revealSpoilers();
+		} else {
+			_media->hideSpoilers();
+		}
 	}
 }
 

@@ -45,9 +45,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
-// AyuGran includes
+// AyuGram includes
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/ayu_settings.h"
+#include "ayu/ui/ayu_userpic.h"
 
 
 namespace HistoryView {
@@ -308,7 +308,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 			_animation->radial.start(_dataMedia->progress());
 		}
 	}
-		const auto radial = isRadialAnimation();
+	const auto radial = isRadialAnimation();
 
 	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	if (_serviceWidth > 0) {
@@ -360,7 +360,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 			p.setBrush(over ? st->msgDateImgBgOver() : st->msgDateImgBg());
 		}
 	}
-	if (paintInCenter) {
+	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
 		const auto radialOpacity = (radial && loaded && !_data->uploading())
 			? _animation->radial.opacity() :
 			1.;
@@ -396,7 +396,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 		p.drawRoundedRect(rect, radius, radius);
 		sti->historyPageEnlarge.paintInCenter(p, rect);
 	}
-		if (_purchasedPriceTag) {
+	if (_purchasedPriceTag) {
 		auto geometry = rthumb;
 		if (showEnlarge) {
 			const auto rect = enlargeRect();
@@ -472,13 +472,18 @@ void Photo::validateUserpicImageCache(QSize size, bool forum) const {
 		args = args.blurred();
 	}
 	original = Images::Prepare(std::move(original), size * ratio, args);
-	if (forumValue) {
+	const auto shape = forumValue
+		? Ui::PeerUserpicShape::Forum
+		: Ui::PeerUserpicShape::Circle;
+	if (AyuUserpic::ShouldOverrideShape(shape)) {
+		original = Images::Round(
+			std::move(original),
+			ImageRoundRadius::AyuUserpic);
+	} else {
 		original = Images::Round(
 			std::move(original),
 			Images::CornersMask(std::min(size.width(), size.height())
 				* Ui::ForumUserpicRadiusMultiplier()));
-	} else {
-		original = Images::Circle(std::move(original));
 	}
 	_imageCache = std::move(original);
 	_imageCacheForum = forumValue;
@@ -566,7 +571,16 @@ void Photo::paintUserpicFrame(
 		const auto ratio = style::DevicePixelRatio();
 		auto request = ::Media::Streaming::FrameRequest();
 		request.outer = request.resize = size * ratio;
-		if (forum) {
+		const auto shape = forum
+			? Ui::PeerUserpicShape::Forum
+			: Ui::PeerUserpicShape::Circle;
+		if (AyuUserpic::ShouldOverrideShape(shape)) {
+			AyuUserpic::ApplyFrameRounding(
+				request,
+				_streamed->roundingCorners,
+				_streamed->roundingMask,
+				size);
+		} else if (forum) {
 			const auto radius = int(std::min(size.width(), size.height())
 				* Ui::ForumUserpicRadiusMultiplier());
 			if (_streamed->roundingCorners[0].width() != radius * ratio) {
@@ -747,7 +761,7 @@ void Photo::drawGrouped(
 			_animation->radial.start(_dataMedia->progress());
 		}
 	}
-		const auto radial = isRadialAnimation();
+	const auto radial = isRadialAnimation();
 
 	const auto revealed = _spoiler
 		? _spoiler->revealAnimation.value(_spoiler->revealed ? 1. : 0.)
@@ -782,7 +796,7 @@ void Photo::drawGrouped(
 		&& (radial
 			|| (!loaded && !_data->loading())
 			|| _data->waitingForAlbum());
-	if (paintInCenter) {
+	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
 		const auto radialOpacity = radial
 			? _animation->radial.opacity()
 			: 1.;
@@ -834,7 +848,7 @@ void Photo::drawGrouped(
 			_animation->radial.draw(p, rinner, line, sti->historyFileThumbRadialFg);
 		}
 	}
-	}
+}
 
 TextState Photo::getStateGrouped(
 		const QRect &geometry,
@@ -1118,9 +1132,3 @@ void Photo::showPhoto(FullMsgId id) {
 }
 
 } // namespace HistoryView
-
-
-
-
-
-

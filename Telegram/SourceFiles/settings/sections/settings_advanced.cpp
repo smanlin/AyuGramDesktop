@@ -65,6 +65,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 
 #ifdef Q_OS_MAC
 #include "base/platform/mac/base_confirm_quit.h"
@@ -1156,7 +1157,9 @@ void BuildExportSection(SectionBuilder &builder) {
 
 	builder.addButton({
 		.id = u"advanced/experimental"_q,
-		.title = tr::lng_settings_experimental(),
+		.title = tr::lng_settings_experimental() | rpl::map([](QString s) {
+			return AyuHantHelper(qsl("lng_settings_experimental"), s);
+		}),
 		.icon = { &st::menuIconExperimental },
 		.onClick = [showOther] { showOther(Experimental::Id()); },
 		.keywords = { u"experimental"_q, u"beta"_q, u"features"_q },

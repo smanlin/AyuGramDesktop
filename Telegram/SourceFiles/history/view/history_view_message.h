@@ -63,6 +63,12 @@ struct PsaTooltipState : RuntimeComponent<PsaTooltipState, Element> {
 	mutable bool buttonVisible = true;
 };
 
+enum class IdentityBadgeIcon : uchar {
+	None,
+	Channel,
+	Group,
+};
+
 enum class BadgeRole : uchar {
 	User,
 	Admin,
@@ -76,6 +82,7 @@ struct RightBadge : RuntimeComponent<RightBadge, Element> {
 	mutable ClickHandlerPtr boostsLink;
 	int width = 0;
 	BadgeRole role = BadgeRole::User;
+	IdentityBadgeIcon identityIcon = IdentityBadgeIcon::None;
 	bool overridden = false;
 	bool special = false;
 };

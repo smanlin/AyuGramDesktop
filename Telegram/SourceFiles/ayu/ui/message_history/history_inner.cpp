@@ -1286,8 +1286,8 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 
 		const auto actionText = link
-									? link->copyToClipboardContextItemText()
-									: QString();
+			? link->copyToClipboardContextItemText()
+			: QString();
 		if (!actionText.isEmpty()) {
 			_menu->addAction(
 				actionText,

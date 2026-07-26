@@ -14,6 +14,7 @@
 
 #include <map>
 #include <unordered_set>
+#include <vector>
 
 
 namespace Main {
@@ -246,8 +247,19 @@ public:
 
 	[[nodiscard]] bool saveDeletedMessages() const { return _saveDeletedMessages.current(); }
 	[[nodiscard]] bool saveMessagesHistory() const { return _saveMessagesHistory.current(); }
+	[[nodiscard]] bool saveDeletedTypeText() const { return _saveDeletedTypeText.current(); }
+	[[nodiscard]] bool saveDeletedTypeVisual() const { return _saveDeletedTypeVisual.current(); }
+	[[nodiscard]] bool saveDeletedTypeAudio() const { return _saveDeletedTypeAudio.current(); }
+	[[nodiscard]] bool saveDeletedTypeSticker() const { return _saveDeletedTypeSticker.current(); }
+	[[nodiscard]] bool saveDeletedTypeGif() const { return _saveDeletedTypeGif.current(); }
+	[[nodiscard]] bool saveDeletedTypeEmoji() const { return _saveDeletedTypeEmoji.current(); }
 	[[nodiscard]] bool saveForBots() const { return _saveForBots.current(); }
 	[[nodiscard]] bool excludeBotsInGroups() const { return _excludeBotsInGroups.current(); }
+	[[nodiscard]] bool deleteBypassKeywordsEnabled() const { return _deleteBypassKeywordsEnabled.current(); }
+	[[nodiscard]] bool deleteBypassKeywordsRegexEnabled() const { return _deleteBypassKeywordsRegexEnabled.current(); }
+	[[nodiscard]] const std::vector<QString> &deleteBypassKeywords() const { return _deleteBypassKeywords.current(); }
+	[[nodiscard]] bool deleteBypassUserIdsEnabled() const { return _deleteBypassUserIdsEnabled.current(); }
+	[[nodiscard]] const std::vector<long long> &deleteBypassUserIds() const { return _deleteBypassUserIds.current(); }
 	[[nodiscard]] bool filtersEnabled() const { return _filtersEnabled.current(); }
 	[[nodiscard]] bool filtersEnabledInChats() const { return _filtersEnabledInChats.current(); }
 	[[nodiscard]] bool hideFromBlocked() const { return _hideFromBlocked.current(); }
@@ -312,8 +324,11 @@ public:
 	[[nodiscard]] ChannelBottomButton channelBottomButton() const { return _channelBottomButton.current(); }
 	[[nodiscard]] bool quickAdminShortcuts() const { return _quickAdminShortcuts.current(); }
 	[[nodiscard]] PeerIdDisplay showPeerId() const { return _showPeerId.current(); }
+	[[nodiscard]] bool showMessageId() const { return _showMessageId.current(); }
 	[[nodiscard]] bool showMessageSeconds() const { return _showMessageSeconds.current(); }
+	[[nodiscard]] bool showViewJson() const { return _showViewJson.current(); }
 	[[nodiscard]] bool showMessageShot() const { return _showMessageShot.current(); }
+	[[nodiscard]] bool showIdentityBadgeIcons() const { return _showIdentityBadgeIcons.current(); }
 	[[nodiscard]] bool filterZalgo() const { return _filterZalgo.current(); }
 	[[nodiscard]] bool stickerConfirmation() const { return _stickerConfirmation.current(); }
 	[[nodiscard]] bool gifConfirmation() const { return _gifConfirmation.current(); }
@@ -325,11 +340,28 @@ public:
 	[[nodiscard]] int avatarCorners() const { return _avatarCorners.current(); }
 	[[nodiscard]] bool singleCornerRadius() const { return _singleCornerRadius.current(); }
 	[[nodiscard]] bool improveDC5Connection() const { return _improveDC5Connection.current(); }
+	[[nodiscard]] bool alwaysShowSpoilerText() const { return _alwaysShowSpoilerText.current(); }
+	[[nodiscard]] bool alwaysShowSpoilerMedia() const { return _alwaysShowSpoilerMedia.current(); }
+	[[nodiscard]] const QString &alwaysShowSpoilerTextColorDarkPeer() const { return _alwaysShowSpoilerTextColorDarkPeer; }
+	[[nodiscard]] const QString &alwaysShowSpoilerTextColorDarkSelf() const { return _alwaysShowSpoilerTextColorDarkSelf; }
+	[[nodiscard]] const QString &alwaysShowSpoilerTextColorLightPeer() const { return _alwaysShowSpoilerTextColorLightPeer; }
+	[[nodiscard]] const QString &alwaysShowSpoilerTextColorLightSelf() const { return _alwaysShowSpoilerTextColorLightSelf; }
 
 	void setSaveDeletedMessages(bool val);
 	void setSaveMessagesHistory(bool val);
+	void setSaveDeletedTypeText(bool val);
+	void setSaveDeletedTypeVisual(bool val);
+	void setSaveDeletedTypeAudio(bool val);
+	void setSaveDeletedTypeSticker(bool val);
+	void setSaveDeletedTypeGif(bool val);
+	void setSaveDeletedTypeEmoji(bool val);
 	void setSaveForBots(bool val);
 	void setExcludeBotsInGroups(bool val);
+	void setDeleteBypassKeywordsEnabled(bool val);
+	void setDeleteBypassKeywordsRegexEnabled(bool val);
+	void setDeleteBypassKeywords(const std::vector<QString> &val);
+	void setDeleteBypassUserIdsEnabled(bool val);
+	void setDeleteBypassUserIds(const std::vector<long long> &val);
 	void setFiltersEnabled(bool val);
 	void setFiltersEnabledInChats(bool val);
 	void setHideFromBlocked(bool val);
@@ -394,8 +426,11 @@ public:
 	void setChannelBottomButton(ChannelBottomButton val);
 	void setQuickAdminShortcuts(bool val);
 	void setShowPeerId(PeerIdDisplay val);
+	void setShowMessageId(bool val);
 	void setShowMessageSeconds(bool val);
+	void setShowViewJson(bool val);
 	void setShowMessageShot(bool val);
+	void setShowIdentityBadgeIcons(bool val);
 	void setFilterZalgo(bool val);
 	void setStickerConfirmation(bool val);
 	void setGifConfirmation(bool val);
@@ -407,6 +442,8 @@ public:
 	void setAvatarCorners(int val);
 	void setSingleCornerRadius(bool val);
 	void setImproveDC5Connection(bool val);
+	void setAlwaysShowSpoilerText(bool val);
+	void setAlwaysShowSpoilerMedia(bool val);
 
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeValue() const { return _useGlobalGhostMode.value(); }
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeChanges() const { return _useGlobalGhostMode.changes(); }
@@ -546,10 +583,16 @@ public:
 	[[nodiscard]] rpl::producer<bool> quickAdminShortcutsChanges() const { return _quickAdminShortcuts.changes(); }
 	[[nodiscard]] rpl::producer<PeerIdDisplay> showPeerIdValue() const { return _showPeerId.value(); }
 	[[nodiscard]] rpl::producer<PeerIdDisplay> showPeerIdChanges() const { return _showPeerId.changes(); }
+	[[nodiscard]] rpl::producer<bool> showMessageIdValue() const { return _showMessageId.value(); }
+	[[nodiscard]] rpl::producer<bool> showMessageIdChanges() const { return _showMessageId.changes(); }
 	[[nodiscard]] rpl::producer<bool> showMessageSecondsValue() const { return _showMessageSeconds.value(); }
 	[[nodiscard]] rpl::producer<bool> showMessageSecondsChanges() const { return _showMessageSeconds.changes(); }
+	[[nodiscard]] rpl::producer<bool> showViewJsonValue() const { return _showViewJson.value(); }
+	[[nodiscard]] rpl::producer<bool> showViewJsonChanges() const { return _showViewJson.changes(); }
 	[[nodiscard]] rpl::producer<bool> showMessageShotValue() const { return _showMessageShot.value(); }
 	[[nodiscard]] rpl::producer<bool> showMessageShotChanges() const { return _showMessageShot.changes(); }
+	[[nodiscard]] rpl::producer<bool> showIdentityBadgeIconsValue() const { return _showIdentityBadgeIcons.value(); }
+	[[nodiscard]] rpl::producer<bool> showIdentityBadgeIconsChanges() const { return _showIdentityBadgeIcons.changes(); }
 	[[nodiscard]] rpl::producer<bool> filterZalgoValue() const { return _filterZalgo.value(); }
 	[[nodiscard]] rpl::producer<bool> filterZalgoChanges() const { return _filterZalgo.changes(); }
 	[[nodiscard]] rpl::producer<bool> stickerConfirmationValue() const { return _stickerConfirmation.value(); }
@@ -583,7 +626,23 @@ private:
 
 	rpl::variable<bool> _saveDeletedMessages = true;
 	rpl::variable<bool> _saveMessagesHistory = true;
+	rpl::variable<bool> _saveDeletedTypeText = true;
+	rpl::variable<bool> _saveDeletedTypeVisual = true;
+	rpl::variable<bool> _saveDeletedTypeAudio = true;
+	rpl::variable<bool> _saveDeletedTypeSticker = true;
+	rpl::variable<bool> _saveDeletedTypeGif = true;
+	rpl::variable<bool> _saveDeletedTypeEmoji = true;
 	rpl::variable<bool> _saveForBots = false;
+	rpl::variable<bool> _deleteBypassKeywordsEnabled = true;
+	rpl::variable<bool> _deleteBypassKeywordsRegexEnabled = false;
+	rpl::variable<std::vector<QString>> _deleteBypassKeywords = std::vector<QString>{
+		QString::fromUtf8("\xE7\xAD\xBE\xE5\x88\xB0"), // 签到
+		QString::fromUtf8("\xE7\xA7\xAF\xE5\x88\x86\xE6\x9F\xA5\xE8\xAF\xA2"), // 积分查询
+		QString::fromUtf8("\xE7\xB0\xBD\xE5\x88\xB0"), // 簽到
+		QString::fromUtf8("\xE7\xA9\x8D\xE5\x88\x86\xE6\x9F\xA5\xE8\xA9\xA2"), // 積分查詢
+	};
+	rpl::variable<bool> _deleteBypassUserIdsEnabled = false;
+	rpl::variable<std::vector<long long>> _deleteBypassUserIds = std::vector<long long>{};
 	std::unordered_set<int64> _shadowBanIds;
 	rpl::variable<bool> _excludeBotsInGroups = false;
 	rpl::variable<bool> _filtersEnabled = false;
@@ -650,8 +709,11 @@ private:
 	rpl::variable<ChannelBottomButton> _channelBottomButton = ChannelBottomButton::DiscussWithFallback;
 	rpl::variable<bool> _quickAdminShortcuts = true;
 	rpl::variable<PeerIdDisplay> _showPeerId = PeerIdDisplay::BotApi;
+	rpl::variable<bool> _showMessageId = false;
 	rpl::variable<bool> _showMessageSeconds = false;
+	rpl::variable<bool> _showViewJson = false;
 	rpl::variable<bool> _showMessageShot = true;
+	rpl::variable<bool> _showIdentityBadgeIcons = true;
 	rpl::variable<bool> _filterZalgo = true;
 	rpl::variable<bool> _stickerConfirmation = false;
 	rpl::variable<bool> _gifConfirmation = false;
@@ -662,6 +724,12 @@ private:
 	rpl::variable<bool> _crashReporting = true;
 	rpl::variable<int> _avatarCorners = 23;
 	rpl::variable<bool> _singleCornerRadius = false;
+	rpl::variable<bool> _alwaysShowSpoilerText = false;
+	rpl::variable<bool> _alwaysShowSpoilerMedia = false;
+	QString _alwaysShowSpoilerTextColorDarkPeer = QString("#B0C4DE");
+	QString _alwaysShowSpoilerTextColorDarkSelf = QString("#E0F0FF");
+	QString _alwaysShowSpoilerTextColorLightPeer = QString("#81D8D0");
+	QString _alwaysShowSpoilerTextColorLightSelf = QString("#4A90E2");
 
 	rpl::variable<bool> _improveDC5Connection = false;
 

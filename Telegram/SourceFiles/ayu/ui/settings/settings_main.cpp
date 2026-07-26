@@ -12,6 +12,7 @@
 #include "ayu/ui/ayu_logo.h"
 #include "ayu/ui/settings/settings_appearance.h"
 #include "ayu/ui/settings/settings_ayu.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_chats.h"
 #include "ayu/ui/settings/settings_filters.h"
 #include "ayu/ui/settings/settings_general.h"
@@ -83,7 +84,9 @@ void BuildVersionInfo(SectionBuilder &builder) {
 		return {
 			.widget = object_ptr<Ui::FlatLabel>(
 				ctx.container,
-				tr::ayu_SettingsDescription(),
+				tr::ayu_SettingsDescription() | rpl::map([](const QString &v) {
+					return AyuHantHelper(qsl("ayu_SettingsDescription"), v);
+				}),
 				st::centeredBoxLabel),
 			.align = style::al_top,
 		};
@@ -98,7 +101,7 @@ void BuildCategories(SectionBuilder &builder) {
 	builder.addDivider();
 	builder.addSkip();
 
-	builder.addSubsectionTitle(tr::ayu_CategoriesHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_CategoriesHeader));
 
 	builder.addSectionButton({
 		.title = rpl::single(QString("AyuGram")),
@@ -106,27 +109,27 @@ void BuildCategories(SectionBuilder &builder) {
 		.icon = { &st::menuIconGroupReactions },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryFilters(),
+		.title = AYU_T(ayu_CategoryFilters),
 		.targetSection = AyuFilters::Id(),
 		.icon = { &st::menuIconTagFilter },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryGeneral(),
+		.title = AYU_T(ayu_CategoryGeneral),
 		.targetSection = AyuGeneral::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryAppearance(),
+		.title = AYU_T(ayu_CategoryAppearance),
 		.targetSection = AyuAppearance::Id(),
 		.icon = { &st::menuIconPalette },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryChats(),
+		.title = AYU_T(ayu_CategoryChats),
 		.targetSection = AyuChats::Id(),
 		.icon = { &st::menuIconChatBubble },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryOther(),
+		.title = AYU_T(ayu_CategoryOther),
 		.targetSection = AyuOther::Id(),
 		.icon = { &st::menuIconFave },
 	});
@@ -137,13 +140,13 @@ void BuildLinks(SectionBuilder &builder) {
 	builder.addDivider();
 	builder.addSkip();
 
-	builder.addSubsectionTitle(tr::ayu_LinksHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_LinksHeader));
 
 	const auto controller = builder.controller();
 
 	builder.addButton({
 		.id = u"ayu/channel"_q,
-		.title = tr::ayu_LinksChannel(),
+		.title = AYU_T(ayu_LinksChannel),
 		.icon = { &st::menuIconChannel },
 		.label = rpl::single(QString("@ayugram")),
 		.onClick = [=] {
@@ -154,7 +157,7 @@ void BuildLinks(SectionBuilder &builder) {
 	});
 	builder.addButton({
 		.id = u"ayu/chat"_q,
-		.title = tr::ayu_LinksChats(),
+		.title = AYU_T(ayu_LinksChats),
 		.icon = { &st::menuIconChats },
 		.label = rpl::single(QString("@ayugramchat")),
 		.onClick = [=] {
@@ -165,7 +168,7 @@ void BuildLinks(SectionBuilder &builder) {
 	});
 	builder.addButton({
 		.id = u"ayu/crowdin"_q,
-		.title = tr::ayu_LinksTranslate(),
+		.title = AYU_T(ayu_LinksTranslate),
 		.icon = { &st::menuIconTranslate },
 		.label = rpl::single(QString("Crowdin")),
 		.onClick = [=] {
@@ -175,7 +178,7 @@ void BuildLinks(SectionBuilder &builder) {
 	});
 	builder.addButton({
 		.id = u"ayu/website"_q,
-		.title = tr::ayu_LinksDocumentation(),
+		.title = AYU_T(ayu_LinksDocumentation),
 		.icon = { &st::menuIconIpAddress },
 		.label = rpl::single(QString("docs.ayugram.one")),
 		.onClick = [=] {

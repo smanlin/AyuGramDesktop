@@ -455,6 +455,7 @@ void BottomInfo::layout() {
 
 void BottomInfo::layoutDateText() {
 	const auto &settings = AyuSettings::getInstance();
+	const auto showMessageId = settings.showMessageId();
 
 	if (!settings.replaceBottomInfoWithIcons()) {
 		const auto deleted = (_data.flags & Data::Flag::AyuDeleted)
@@ -471,7 +472,8 @@ void BottomInfo::layoutDateText() {
 		const auto prefix = !author.isEmpty() ? u", "_q : QString();
 		const auto date = edited + ((_data.flags & Data::Flag::ForwardedDate)
 			? Ui::FormatDateTimeSavedFrom(_data.date)
-			: formatMessageTime(_data.date.time()));
+			: formatMessageTime(_data.date.time()))
+			+ (showMessageId ? (" #" + QString::number(_data.msgId)) : QString());
 		const auto afterAuthor = prefix + date;
 		const auto afterAuthorWidth = st::msgDateFont->width(afterAuthor);
 		const auto authorWidth = st::msgDateFont->width(author);
@@ -556,7 +558,8 @@ void BottomInfo::layoutDateText() {
 
 		const auto date = TextWithEntities{}
 			.append(edited)
-			.append(dateStr);
+			.append(dateStr)
+			.append(showMessageId ? (" #" + QString::number(_data.msgId)) : QString());
 
 		const auto afterAuthor = TextWithEntities{}.append(prefix).append(date);
 		const auto afterAuthorWidth = st::msgDateFont->width(afterAuthor.text);
@@ -717,6 +720,7 @@ BottomInfo::Data BottomInfoDataFromMessage(not_null<Message*> message) {
 
 	auto result = BottomInfo::Data();
 	result.date = message->dateTime();
+	result.msgId = item->id.bare;
 	result.effectId = item->effectId();
 	if (message->hasOutLayout()) {
 		result.flags |= Flag::OutLayout;

@@ -71,6 +71,22 @@ constexpr auto kSummarizeThreshold = 512;
 constexpr auto kPlayStatusLimit = 12;
 const auto kPsaTooltipPrefix = "cloud_lng_tooltip_psa_";
 
+[[nodiscard]] QColor AyuAlwaysShowSpoilerColor(bool isSelf) {
+	const auto &settings = AyuSettings::getInstance();
+	const auto pick = [&](const QString &value, const char *fallback) {
+		const auto color = QColor(value.trimmed());
+		return color.isValid() ? color : QColor(fallback);
+	};
+	const auto useLightSet = Window::Theme::IsNightMode();
+	return isSelf
+		? (useLightSet
+			? pick(settings.alwaysShowSpoilerTextColorLightSelf(), "#4A90E2")
+			: pick(settings.alwaysShowSpoilerTextColorDarkSelf(), "#E0F0FF"))
+		: (useLightSet
+			? pick(settings.alwaysShowSpoilerTextColorLightPeer(), "#81D8D0")
+			: pick(settings.alwaysShowSpoilerTextColorDarkPeer(), "#B0C4DE"));
+}
+
 [[nodiscard]] ClickHandlerPtr MakeTopicButtonLink(
 		not_null<Data::ForumTopic*> topic,
 		MsgId messageId) {
@@ -332,7 +348,15 @@ void Message::refreshRightBadge() {
 			: TextUtilities::RemoveEmoji(TextUtilities::SingleLine(text)))
 	};
 	const auto boosts = item->boostsApplied();
-	const auto needBadge = !tagText.empty() || boosts;
+	const auto showIdentityIcons = AyuSettings::getInstance().showIdentityBadgeIcons();
+	const auto showChannelIcon = showIdentityIcons
+		&& item->author()->isBroadcast()
+		&& tagText.empty();
+	const auto showGroupIcon = !showChannelIcon
+		&& showIdentityIcons
+		&& tagText.empty()
+		&& (item->author()->isMegagroup() || item->author()->isChat());
+	const auto needBadge = showChannelIcon || showGroupIcon || !tagText.empty() || boosts;
 	if (!needBadge) {
 		if (Has<RightBadge>()) {
 			RemoveComponents(RightBadge::Bit());
@@ -344,6 +368,11 @@ void Message::refreshRightBadge() {
 	}
 	const auto badge = Get<RightBadge>();
 	badge->role = role;
+	badge->identityIcon = showChannelIcon
+		? IdentityBadgeIcon::Channel
+		: showGroupIcon
+		? IdentityBadgeIcon::Group
+		: IdentityBadgeIcon::None;
 	badge->special = special || (text.isEmpty() && !tagText.empty());
 	badge->tagLink = nullptr;
 	if (tagText.empty()) {
@@ -371,10 +400,19 @@ void Message::refreshRightBadge() {
 		? 0
 		: (st::msgTagBadgeBoostSkip + badge->boosts.maxWidth());
 	if (badge->role == BadgeRole::User) {
+		// refreshRightBadge() has no PaintContext / MessageStyle, so use
+		// a small inline icon width baseline close to name-row glyph size.
+		const auto iconWidth = (badge->identityIcon != IdentityBadgeIcon::None)
+			? st::dialogsPremiumIcon.icon.width()
+			: 0;
+		const auto iconSkip = ((badge->identityIcon != IdentityBadgeIcon::None)
+			&& !badge->tag.isEmpty())
+			? st::msgServiceFont->spacew
+			: 0;
 		const auto tagWidth = badge->tag.isEmpty()
 			? 0
 			: badge->tag.maxWidth();
-		badge->width = tagWidth + boostWidth;
+		badge->width = iconWidth + iconSkip + tagWidth + boostWidth;
 	} else {
 		const auto &padding = st::msgTagBadgePadding;
 		const auto tagTextWidth = badge->tag.maxWidth();
@@ -908,6 +946,10 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 	auto g = countGeometry();
 	if (g.width() < 1) {
 		return;
+	}
+	const auto &settings = AyuSettings::getInstance();
+	if (settings.alwaysShowSpoilerText() || settings.alwaysShowSpoilerMedia()) {
+		const_cast<Message*>(this)->hideSpoilers();
 	}
 
 	const auto item = data();
@@ -1469,6 +1511,19 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 		}
 		p.restore();
 	}
+	if (settings.alwaysShowSpoilerMedia()
+		&& mediaDisplayed
+		&& item->media()
+		&& item->media()->hasSpoiler()) {
+		const auto accent = AyuAlwaysShowSpoilerColor(context.outbg);
+		const auto stroke = 3 + int(style::DevicePixelRatio() > 1.);
+		const auto r = g.marginsAdded(QMargins(1, 1, 1, 1));
+		if (r.width() > 4 && r.height() > 4) {
+			p.setBrush(Qt::NoBrush);
+			p.setPen(QPen(accent, stroke));
+			p.drawRoundedRect(r, 10., 10.);
+		}
+	}
 	if (selectionTranslation) {
 		p.translate(-selectionTranslation, 0);
 	}
@@ -1798,11 +1853,49 @@ void Message::paintFromName(
 				});
 			} else if (!badge->tag.isEmpty()) {
 				p.setPen(st::rankUserFg);
+				auto badgeTextLeft = badgeLeft;
+				const auto badgeIcon = [&]() -> const style::icon* {
+					switch (badge->identityIcon) {
+					case IdentityBadgeIcon::Channel: return &stm->channelBadgeIcon;
+					case IdentityBadgeIcon::Group:
+						return context.selected()
+							? &st::inGroupBadgeSelectedIcon
+							: &st::inGroupBadgeIcon;
+					case IdentityBadgeIcon::None: return nullptr;
+					}
+					return nullptr;
+				}();
+				if (badgeIcon) {
+					const auto iconXShift = (badge->identityIcon == IdentityBadgeIcon::Group) ? 1 : 0;
+					const auto iconY = trect.top()
+						+ (st::msgNameFont->height - badgeIcon->height()) / 2;
+					badgeIcon->paint(
+						p,
+						badgeTextLeft + iconXShift,
+						iconY,
+						width());
+					badgeTextLeft += badgeIcon->width()
+						+ st::msgServiceFont->spacew;
+				}
 				badge->tag.draw(p, {
-					.position = QPoint(badgeLeft, trect.top()),
+					.position = QPoint(badgeTextLeft, trect.top()),
 					.availableWidth = badge->tag.maxWidth(),
 					.now = context.now,
 				});
+			} else if (badge->identityIcon != IdentityBadgeIcon::None) {
+				const auto badgeIcon = (badge->identityIcon == IdentityBadgeIcon::Channel)
+					? &stm->channelBadgeIcon
+					: (context.selected()
+						? &st::inGroupBadgeSelectedIcon
+						: &st::inGroupBadgeIcon);
+				const auto iconXShift = (badge->identityIcon == IdentityBadgeIcon::Group) ? 1 : 0;
+				const auto iconY = trect.top()
+					+ (st::msgNameFont->height - badgeIcon->height()) / 2;
+				badgeIcon->paint(
+					p,
+					badgeLeft + iconXShift,
+					iconY,
+					width());
 			}
 			if (!badge->boosts.isEmpty()) {
 				const auto boostWidth = badge->boosts.maxWidth();

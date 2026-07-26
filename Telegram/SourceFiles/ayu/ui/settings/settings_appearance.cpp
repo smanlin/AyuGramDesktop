@@ -13,6 +13,7 @@
 #include "ayu/ui/components/avatar_corners_preview.h"
 #include "ayu/ui/components/icon_picker.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "core/application.h"
 #include "inline_bots/bot_attach_web_view.h"
@@ -54,7 +55,7 @@ bool HasDrawerBots(not_null<Window::SessionController*> controller) {
 void BuildAppIcon(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	builder.addSubsectionTitle({
 		.id = u"ayu/appIcon"_q,
-		.title = tr::ayu_AppIconHeader(),
+		.title = AYU_T(ayu_AppIconHeader),
 	});
 
 	builder.add([](const WidgetContext &ctx) -> SectionBuilder::WidgetToAdd {
@@ -69,12 +70,12 @@ void BuildAppIcon(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	builder.addSkip();
 	ayu.addSettingToggle({
 		.id = u"ayu/hideNotificationBadge"_q,
-		.title = tr::ayu_HideNotificationBadge(),
+		.title = AYU_T(ayu_HideNotificationBadge),
 		.getter = &AyuSettings::hideNotificationBadge,
 		.setter = &AyuSettings::setHideNotificationBadge,
 	});
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_HideNotificationBadgeDescription());
+	builder.addDividerText(AYU_T(ayu_HideNotificationBadgeDescription));
 	builder.addSkip();
 #else
     builder.addDivider();
@@ -89,9 +90,9 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	const auto mapRadius = [](int val)
 	{
 		if (val == 0) {
-			return tr::ayu_AvatarCornersSquare(tr::now).toUpper();
+			return AYU_S(ayu_AvatarCornersSquare).toUpper();
 		} else if (val == AyuUiSettings::kMaxAvatarCorners) {
-			return tr::ayu_AvatarCornersCircle(tr::now).toUpper();
+			return AYU_S(ayu_AvatarCornersCircle).toUpper();
 		}
 		return QString::number(val);
 	};
@@ -100,7 +101,7 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		const auto container = ctx.container;
 		auto title = object_ptr<Ui::FlatLabel>(
 			container,
-			tr::ayu_AvatarCorners(),
+			AYU_T(ayu_AvatarCorners),
 			st::defaultSubsectionTitle);
 		const auto titleRaw = title.data();
 
@@ -138,7 +139,7 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	}, [] {
 		return SearchEntry{
 			.id = u"ayu/avatarCorners"_q,
-			.title = tr::ayu_AvatarCorners(tr::now),
+			.title = AYU_S(ayu_AvatarCorners),
 		};
 	});
 
@@ -183,32 +184,32 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	ayu.addSettingToggle({
 		.id = u"ayu/singleCornerRadius"_q,
-		.title = tr::ayu_SingleCornerRadius(),
+		.title = AYU_T(ayu_SingleCornerRadius),
 		.getter = &AyuSettings::singleCornerRadius,
 		.setter = &AyuSettings::setSingleCornerRadius,
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SingleCornerRadiusDescription());
+	builder.addDividerText(AYU_T(ayu_SingleCornerRadiusDescription));
 	builder.addSkip();
 }
 
 void BuildAppearance(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	auto *settings = &AyuSettings::getInstance();
 
-	builder.addSubsectionTitle(tr::ayu_CategoryAppearance());
+	builder.addSubsectionTitle(AYU_T(ayu_CategoryAppearance));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/materialSwitches"_q,
 		.altIds = { u"ayu/newSwitchStyle"_q },
-		.title = tr::ayu_MaterialSwitches(),
+		.title = AYU_T(ayu_MaterialSwitches),
 		.getter = &AyuSettings::materialSwitches,
 		.setter = &AyuSettings::setMaterialSwitches,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/disableCustomBackgrounds"_q,
 		.altIds = { u"ayu/customThemes"_q },
-		.title = tr::ayu_DisableCustomBackgrounds(),
+		.title = AYU_T(ayu_DisableCustomBackgrounds),
 		.getter = &AyuSettings::disableCustomBackgrounds,
 		.setter = &AyuSettings::setDisableCustomBackgrounds,
 	});
@@ -216,11 +217,11 @@ void BuildAppearance(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 	builder.addButton({
 		.id = u"ayu/monoFont"_q,
-		.title = tr::ayu_MonospaceFont(),
+		.title = AYU_T(ayu_MonospaceFont),
 		.st = &st::settingsButtonNoIcon,
 		.label = rpl::single(
 			settings->monoFont().isEmpty()
-				? tr::ayu_FontDefault(tr::now)
+				? AYU_S(ayu_FontDefault)
 				: settings->monoFont()),
 		.onClick = [=] {
 			AyuUi::FontSelectorBox::Show(
@@ -235,19 +236,19 @@ void BuildAppearance(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 }
 
 void BuildChatFolders(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_ChatFoldersHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_ChatFoldersHeader));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/hideNotificationCounters"_q,
 		.altIds = { u"ayu/tabCounter"_q },
-		.title = tr::ayu_HideNotificationCounters(),
+		.title = AYU_T(ayu_HideNotificationCounters),
 		.getter = &AyuSettings::hideNotificationCounters,
 		.setter = &AyuSettings::setHideNotificationCounters,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/hideAllChatsFolder"_q,
 		.altIds = { u"ayu/hideAllChats"_q },
-		.title = tr::ayu_HideAllChats(),
+		.title = AYU_T(ayu_HideAllChats),
 		.getter = &AyuSettings::hideAllChatsFolder,
 		.setter = &AyuSettings::setHideAllChatsFolder,
 	});
@@ -256,11 +257,11 @@ void BuildChatFolders(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 }
 
 void BuildTrayElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_TrayElementsHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_TrayElementsHeader));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/showGhostToggleInTray"_q,
-		.title = tr::ayu_EnableGhostModeTray(),
+		.title = AYU_T(ayu_EnableGhostModeTray),
 		.getter = &AyuSettings::showGhostToggleInTray,
 		.setter = &AyuSettings::setShowGhostToggleInTray,
 	});
@@ -268,7 +269,7 @@ void BuildTrayElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
 		.id = u"ayu/showStreamerToggleInTray"_q,
-		.title = tr::ayu_EnableStreamerModeTray(),
+		.title = AYU_T(ayu_EnableStreamerModeTray),
 		.getter = &AyuSettings::showStreamerToggleInTray,
 		.setter = &AyuSettings::setShowStreamerToggleInTray,
 	});
@@ -278,7 +279,7 @@ void BuildTrayElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 }
 
 void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_DrawerElementsHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_DrawerElementsHeader));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/showMyProfileInDrawer"_q,
@@ -336,14 +337,14 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showLReadToggleInDrawer"_q,
-		.title = tr::ayu_LReadMessages(),
+		.title = AYU_T(ayu_LReadMessages),
 		.getter = &AyuSettings::showLReadToggleInDrawer,
 		.setter = &AyuSettings::setShowLReadToggleInDrawer,
 		.icon = { &st::ayuLReadMenuIcon },
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showSReadToggleInDrawer"_q,
-		.title = tr::ayu_SReadMessages(),
+		.title = AYU_T(ayu_SReadMessages),
 		.getter = &AyuSettings::showSReadToggleInDrawer,
 		.setter = &AyuSettings::setShowSReadToggleInDrawer,
 		.icon = { &st::ayuSReadMenuIcon },
@@ -357,7 +358,7 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showGhostToggleInDrawer"_q,
-		.title = tr::ayu_GhostModeToggle(),
+		.title = AYU_T(ayu_GhostModeToggle),
 		.getter = &AyuSettings::showGhostToggleInDrawer,
 		.setter = &AyuSettings::setShowGhostToggleInDrawer,
 		.icon = { &st::ayuGhostIcon },
@@ -366,7 +367,7 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
 		.id = u"ayu/showStreamerToggleInDrawer"_q,
-		.title = tr::ayu_StreamerModeToggle(),
+		.title = AYU_T(ayu_StreamerModeToggle),
 		.getter = &AyuSettings::showStreamerToggleInDrawer,
 		.setter = &AyuSettings::setShowStreamerToggleInDrawer,
 		.icon = { &st::ayuStreamerModeMenuIcon },

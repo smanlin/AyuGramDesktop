@@ -91,6 +91,8 @@ QString getPeerDC(not_null<PeerData*> peer);
 
 int getScheduleTime(int64 sumSize);
 
+bool containsDeleteBypassKeyword(const QString &text);
+bool containsDeleteBypassUserId(not_null<HistoryItem*> item);
 bool isMessageSavable(not_null<HistoryItem *> item);
 void processMessageDelete(not_null<HistoryItem *> item);
 

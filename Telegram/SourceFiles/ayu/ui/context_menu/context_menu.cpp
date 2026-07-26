@@ -13,6 +13,7 @@
 #include "ayu/ayu_state.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/ui/boxes/json_viewer_box.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 #include "ayu/ui/message_history/history_section.h"
 #include "ayu/ui/settings/ayu_hant_helper.h"
@@ -33,6 +34,7 @@
 #include "history/history_item_components.h"
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_element.h"
+#include "iv/iv_instance.h"
 #include "main/session/send_as_peers.h"
 #include "styles/style_ayu_icons.h"
 #include "styles/style_layers.h"
@@ -45,6 +47,9 @@
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "api/api_sending.h"
+
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 
 namespace AyuUi {
 
@@ -293,7 +298,9 @@ void AddDeletedMessagesActions(PeerData *peerData,
 	// }
 
 	addCallback(
-		tr::ayu_ViewDeletedMenuText(tr::now),
+		AyuHantHelper(
+			qsl("ayu_ViewDeletedMenuText"),
+			tr::ayu_ViewDeletedMenuText(tr::now)),
 		[=]
 		{
 			sessionController->session().tryResolveWindow()
@@ -358,7 +365,9 @@ void AddJumpToBeginningAction(PeerData *peerData,
 	};
 
 	addCallback(
-		tr::ayu_JumpToBeginning(tr::now),
+		AyuHantHelper(
+			qsl("ayu_JumpToBeginning"),
+			tr::ayu_JumpToBeginning(tr::now)),
 		[=]
 		{
 			if (user) {
@@ -445,26 +454,27 @@ void AddDeleteOwnMessagesAction(PeerData *peerData,
 								Data::ForumTopic *topic,
 								not_null<Window::SessionController*> sessionController,
 								const Window::PeerMenuCallback &addCallback) {
-	if (topic) {
-		return;
-	}
+	// Topic view should also allow this action (same peer, different entry point).
+	(void)topic;
 	const auto isGroup = peerData->isChat() || peerData->isMegagroup();
 	if (!isGroup) {
 		return;
 	}
 	if (const auto chat = peerData->asChat()) {
-		if (!chat->amIn() || chat->amCreator() || chat->hasAdminRights()) {
+		if (!chat->amIn()) {
 			return;
 		}
 	} else if (const auto channel = peerData->asChannel()) {
-		if (!channel->isMegagroup() || !channel->amIn() || channel->amCreator() || channel->hasAdminRights()) {
+		if (!channel->isMegagroup() || !channel->amIn()) {
 			return;
 		}
 	} else {
 		return;
 	}
 	addCallback(
-		tr::ayu_DeleteOwnMessages(tr::now),
+		AyuHantHelper(
+			qsl("ayu_DeleteOwnMessages"),
+			tr::ayu_DeleteOwnMessages(tr::now)),
 		DeleteMyMessagesHandler(sessionController, peerData),
 		&st::menuIconTTL);
 }
@@ -552,11 +562,59 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 
 void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	const auto &settings = AyuSettings::getInstance();
-	if (!needToShowItem(settings.showMessageDetailsInContextMenu())) {
+	const auto canShowViewJson = settings.showViewJson() && !item->isLocal();
+
+	if (item->isLocal()) {
 		return;
 	}
 
-	if (item->isLocal()) {
+	if (canShowViewJson) {
+		menu->addAction(
+			AyuHantHelper(qsl("ayu_MessageDetailsViewJson"), qsl("View JSON data")),
+			[=] {
+				const auto localMedia = item->media();
+				const auto localMediaSize = localMedia ? getMediaSize(item) : QString();
+				const auto localMediaMime = localMedia ? getMediaMime(item) : QString();
+				const auto localMediaName = localMedia ? getMediaName(item) : QString();
+				const auto localMediaResolution = localMedia ? getMediaResolution(item) : QString();
+				const auto localMediaDC = localMedia ? getMediaDC(item) : QString();
+				auto json = QJsonObject();
+				json.insert(qsl("id"), QString::number(item->id.bare));
+				json.insert(qsl("peer_id"), QString::number(qulonglong(item->history()->peer->id.value)));
+				json.insert(qsl("date"), int(item->date()));
+				json.insert(qsl("out"), item->out());
+				json.insert(qsl("views"), item->hasViews() ? item->viewsCount() : 0);
+				json.insert(qsl("text"), item->originalText().text);
+				json.insert(qsl("has_media"), localMedia != nullptr);
+				json.insert(qsl("media_mime"), localMediaMime);
+				json.insert(qsl("media_name"), localMediaName);
+				json.insert(qsl("media_size"), localMediaSize);
+				json.insert(qsl("media_resolution"), localMediaResolution);
+				json.insert(qsl("media_datacenter"), localMediaDC);
+				const auto payload = QString::fromUtf8(
+					QJsonDocument(json).toJson(QJsonDocument::Indented));
+				const auto showLocal = [=] {
+					if (const auto controller = item->history()->session().tryResolveWindow()) {
+						controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+							Ui::FillJsonViewerBox(box, payload);
+						}));
+					}
+				};
+
+				item->history()->session().api().exportMessageAsBase64(
+					item,
+					[=](const QString &base64) {
+						Core::App().iv().showTLViewer(MTP::details::kCurrentLayer, base64);
+					},
+					[=] {
+						DEBUG_LOG(("AyuContextMenu: exportMessageAsBase64 failed, fallback local json viewer"));
+						showLocal();
+					});
+			},
+			&st::menuIconInfo);
+	}
+
+	if (!needToShowItem(settings.showMessageDetailsInContextMenu())) {
 		return;
 	}
 
@@ -761,21 +819,43 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	});
 }
 
-void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, HistoryView::Context context) {
+void AddRepeatMessageAction(
+		not_null<Ui::PopupMenu*> menu,
+		HistoryItem *item,
+		HistoryView::Context context,
+		bool forceVisible) {
 	const auto &settings = AyuSettings::getInstance();
-	if (!needToShowItem(settings.showRepeatMessageInContextMenu())) {
+	const auto visibility = settings.showRepeatMessageInContextMenu();
+	// Repeat is a high-use action: show it for both Visible and Extended modes.
+	// Only fully hide when explicitly set to Hidden.
+	if (!forceVisible && visibility == ContextMenuVisibility::Hidden) {
+		LOG(("RepeatMenu: hidden by setting/state=%1").arg(static_cast<int>(visibility)));
 		return;
 	}
 
-	if (!item || item->isService() || item->isLocal() || !item->allowsForward() || item->id <= 0) {
+	if (!item) {
+		LOG(("RepeatMenu: skipped, item is null"));
 		return;
 	}
-
+	if (item->isService()) {
+		LOG(("RepeatMenu: continue on service message id=%1").arg(item->id.bare));
+	}
+	if (item->isLocal()) {
+		LOG(("RepeatMenu: continue on local message id=%1").arg(item->id.bare));
+	}
+	if (item->id <= 0) {
+		LOG(("RepeatMenu: continue on invalid id=%1").arg(item->id.bare));
+	}
 	const auto history = item->history();
 	const auto peer = history->peer;
-	if (!peer->isUser() && !peer->isChat() && !peer->isMegagroup() && !peer->isGigagroup()) {
+	if (!peer) {
+		LOG(("RepeatMenu: skipped, peer is null id=%1").arg(item->id.bare));
 		return;
 	}
+	LOG(("RepeatMenu: adding actions for id=%1, peer=%2, context=%3")
+		.arg(item->id.bare)
+		.arg(peer ? peer->id.value : 0)
+		.arg(static_cast<int>(context)));
 
 	const auto itemId = item->fullId();
 	const auto session = &history->session();
@@ -855,22 +935,16 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item, Hi
 		}
 	};
 
-	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
-	callback(Window::PeerMenuCallback::Args{
-		.text = AyuHantHelper(qsl("ayu_RepeatMenuText"), tr::ayu_RepeatMessage(tr::now)),
-		.handler = nullptr,
-		.icon = &st::ayuRepeatMenuIcon,
-		.fillSubmenu = [=](not_null<Ui::PopupMenu*> submenu) {
-			submenu->addAction(
-				AyuHantHelper(qsl("ayu_RepeatForwardMenuText"), qsl("Forward-style Repeat")),
-				[=] { doRepeat(false); },
-				&st::menuIconForward);
-			submenu->addAction(
-				AyuHantHelper(qsl("ayu_RepeatCopyMenuText"), qsl("Copy-style Repeat")),
-				[=] { doRepeat(true); },
-				&st::menuIconCopy);
-		},
-	});
+	if (item->allowsForward()) {
+		menu->addAction(
+			AyuHantHelper(qsl("ayu_RepeatForwardMenuText"), qsl("Forward-style Repeat")),
+			[=] { doRepeat(false); },
+			&st::menuIconForward);
+	}
+	menu->addAction(
+		AyuHantHelper(qsl("ayu_RepeatCopyMenuText"), qsl("Copy-style Repeat")),
+		[=] { doRepeat(true); },
+		&st::menuIconCopy);
 }
 
 void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {

@@ -64,7 +64,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/ayu_settings.h"
 
 
 namespace HistoryView {
@@ -477,6 +476,7 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 	if (rtl()) usex = width() - usex - usew;
 
 	QRect rthumb(style::rtlrect(usex + paintx, painty, usew, painth, width()));
+
 	const auto inTTLViewer = _parent->delegate()->elementContext()
 		== Context::TTLViewer;
 	const auto revealed = (isRound
@@ -2233,5 +2233,3 @@ void Gif::ensureTranscribeButton() const {
 }
 
 } // namespace HistoryView
-
-

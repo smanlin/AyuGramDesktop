@@ -48,6 +48,7 @@
 
 #include <functional>
 #include <latch>
+#include <QRegularExpression>
 #include <QTimer>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -613,6 +614,109 @@ int getScheduleTime(int64 sumSize) {
 	return time;
 }
 
+bool containsDeleteBypassKeyword(const QString &text) {
+	if (text.isEmpty()) {
+		return false;
+	}
+
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.deleteBypassKeywordsEnabled()) {
+		return false;
+	}
+
+	const auto regexMode = settings.deleteBypassKeywordsRegexEnabled();
+	for (const auto &keyword : settings.deleteBypassKeywords()) {
+		const auto normalized = keyword.trimmed();
+		if (normalized.isEmpty()) {
+			continue;
+		}
+		if (!regexMode && text.contains(normalized, Qt::CaseInsensitive)) {
+			return true;
+		}
+		if (!regexMode) {
+			continue;
+		}
+		const auto pattern = QRegularExpression(
+			normalized,
+			QRegularExpression::CaseInsensitiveOption
+				| QRegularExpression::UseUnicodePropertiesOption);
+		if (!pattern.isValid()) {
+			continue;
+		}
+		if (pattern.match(text).hasMatch()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool containsDeleteBypassUserId(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.deleteBypassUserIdsEnabled() || settings.deleteBypassUserIds().empty()) {
+		return false;
+	}
+
+	const auto from = item->from();
+	const auto user = from ? from->asUser() : nullptr;
+	if (!user) {
+		return false;
+	}
+
+	const auto senderId = static_cast<long long>(getBareID(user));
+	for (const auto allowedId : settings.deleteBypassUserIds()) {
+		if (allowedId == senderId) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool isMessageTypeSavable(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+
+	if (item->isService()) {
+		return true;
+	}
+
+	if (!item->media()) {
+		return item->isOnlyEmojiAndSpaces()
+			? settings.saveDeletedTypeEmoji()
+			: settings.saveDeletedTypeText();
+	}
+
+	const auto media = item->media();
+	if (const auto document = media->document()) {
+		if (document->isPremiumEmoji()) {
+			return settings.saveDeletedTypeEmoji();
+		}
+		if (document->sticker()) {
+			return settings.saveDeletedTypeSticker();
+		}
+		if (document->isGifv()
+			|| (document->isAnimation() && !document->sticker())) {
+			return settings.saveDeletedTypeGif();
+		}
+		if (document->isVoiceMessage()
+			|| document->isSong()
+			|| document->isAudioFile()) {
+			return settings.saveDeletedTypeAudio();
+		}
+		if (document->isVideoMessage()
+			|| document->isVideoFile()
+			|| document->isImage()) {
+			return settings.saveDeletedTypeVisual();
+		}
+		return true;
+	}
+
+	if (media->photo()) {
+		return settings.saveDeletedTypeVisual();
+	}
+
+	return true;
+}
+
 bool isMessageSavable(const not_null<HistoryItem*> item) {
 	const auto &settings = AyuSettings::getInstance();
 
@@ -630,6 +734,17 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 		if (user && user->isBot()) {
 			return false;
 		}
+	}
+
+	if (containsDeleteBypassKeyword(item->originalText().text)) {
+		return false;
+	}
+	if (containsDeleteBypassUserId(item)) {
+		return false;
+	}
+
+	if (!isMessageTypeSavable(item)) {
+		return false;
 	}
 
 	return true;

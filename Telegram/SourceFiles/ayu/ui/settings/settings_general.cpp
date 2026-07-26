@@ -9,6 +9,7 @@
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "core/application.h"
@@ -51,7 +52,7 @@ void BuildTranslator(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	const auto button = builder.addButton({
 		.id = u"ayu/translationProvider"_q,
-		.title = tr::ayu_TranslationProvider(),
+		.title = AYU_T(ayu_TranslationProvider),
 		.st = &st::settingsButtonNoIcon,
 		.label = std::move(currentVal),
 		.onClick = [=] {
@@ -63,7 +64,7 @@ void BuildTranslator(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 								static_cast<TranslationProvider>(index));
 						};
 						SingleChoiceBox(box, {
-							.title = tr::ayu_TranslationProvider(),
+							.title = rpl::single(AYU_S(ayu_TranslationProvider)),
 							.options = options,
 							.initialSelection = getIndex(settings->translationProvider()),
 							.callback = save,
@@ -81,7 +82,7 @@ void BuildShowPeerId(SectionBuilder &builder) {
 	auto *settings = &AyuSettings::getInstance();
 
 	const auto options = std::vector{
-		QString(tr::ayu_SettingsShowID_Hide(tr::now)),
+		AYU_S(ayu_SettingsShowID_Hide),
 		QString("Telegram API"),
 		QString("Bot API")
 	};
@@ -95,7 +96,7 @@ void BuildShowPeerId(SectionBuilder &builder) {
 	builder.addButton({
 		.id = u"ayu/showPeerId"_q,
 		.altIds = { u"ayu/showIdAndDc"_q },
-		.title = tr::ayu_SettingsShowID(),
+		.title = AYU_T(ayu_SettingsShowID),
 		.st = &st::settingsButtonNoIcon,
 		.label = std::move(currentVal),
 		.onClick = [=] {
@@ -106,7 +107,7 @@ void BuildShowPeerId(SectionBuilder &builder) {
 							static_cast<PeerIdDisplay>(index));
 					};
 					SingleChoiceBox(box, {
-						.title = tr::ayu_SettingsShowID(),
+							.title = rpl::single(AYU_S(ayu_SettingsShowID)),
 						.options = options,
 						.initialSelection = static_cast<int>(settings->showPeerId()),
 						.callback = save,
@@ -122,34 +123,34 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	BuildTranslator(builder, ayu);
 	ayu.addSectionDivider();
 
-	builder.addSubsectionTitle(tr::ayu_CategoryGeneral());
+	builder.addSubsectionTitle(AYU_T(ayu_CategoryGeneral));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/disableStories"_q,
 		.altIds = { u"ayu/hideStories"_q },
-		.title = tr::ayu_DisableStories(),
+		.title = AYU_T(ayu_DisableStories),
 		.getter = &AyuSettings::disableStories,
 		.setter = &AyuSettings::setDisableStories,
 	});
 
 	ayu.addSettingToggle({
 		.id = u"ayu/disableOpenLinkWarning"_q,
-		.title = tr::ayu_DisableOpenLinkWarning(),
+		.title = AYU_T(ayu_DisableOpenLinkWarning),
 		.getter = &AyuSettings::disableOpenLinkWarning,
 		.setter = &AyuSettings::setDisableOpenLinkWarning,
 	});
 
 	ayu.addCollapsibleToggle({
 		.id = u"ayu/similarChannels"_q,
-		.title = tr::ayu_DisableSimilarChannels(),
+		.title = AYU_T(ayu_DisableSimilarChannels),
 		.checkboxes = {
 			NestedEntry{
-				tr::ayu_CollapseSimilarChannels(tr::now),
+				AYU_S(ayu_CollapseSimilarChannels),
 				[] { return AyuSettings::getInstance().collapseSimilarChannels(); },
 				[](bool v) { AyuSettings::getInstance().setCollapseSimilarChannels(v); }
 			},
 			NestedEntry{
-				tr::ayu_HideSimilarChannelsTab(tr::now),
+				AYU_S(ayu_HideSimilarChannelsTab),
 				[] { return AyuSettings::getInstance().hideSimilarChannels(); },
 				[](bool v) { AyuSettings::getInstance().setHideSimilarChannels(v); }
 			}
@@ -159,7 +160,7 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	ayu.addSettingToggle({
 		.id = u"ayu/disableNotificationsDelay"_q,
-		.title = tr::ayu_DisableNotificationsDelay(),
+		.title = AYU_T(ayu_DisableNotificationsDelay),
 		.getter = &AyuSettings::disableNotificationsDelay,
 		.setter = &AyuSettings::setDisableNotificationsDelay,
 	});
@@ -169,7 +170,7 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 	const auto zalgoButton = builder.addButton({
 		.id = u"ayu/filterZalgo"_q,
-		.title = tr::ayu_FilterZalgo(),
+		.title = AYU_T(ayu_FilterZalgo),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filterZalgo()),
 	});
@@ -195,42 +196,75 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	ayu.addSettingToggle({
 		.id = u"ayu/improveLinkPreviews"_q,
-		.title = tr::ayu_ImproveLinkPreviews(),
+		.title = AYU_T(ayu_ImproveLinkPreviews),
 		.getter = &AyuSettings::improveLinkPreviews,
 		.setter = &AyuSettings::setImproveLinkPreviews,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showMessageSeconds"_q,
 		.altIds = { u"ayu/formatTimeWithSeconds"_q },
-		.title = tr::ayu_SettingsShowMessageSeconds(),
+		.title = AYU_T(ayu_SettingsShowMessageSeconds),
 		.getter = &AyuSettings::showMessageSeconds,
 		.setter = &AyuSettings::setShowMessageSeconds,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/showMessageId"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SettingsShowMessageID"),
+			qsl("Show message ID next to time"))),
+		.getter = &AyuSettings::showMessageId,
+		.setter = &AyuSettings::setShowMessageId,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/showViewJson"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SettingsShowViewJson"),
+			qsl("Show [View JSON] in context menu"))),
+		.getter = &AyuSettings::showViewJson,
+		.setter = &AyuSettings::setShowViewJson,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/alwaysShowSpoilerText"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_AlwaysShowSpoilerText"),
+			qsl("Always show spoiler text"))),
+		.getter = &AyuSettings::alwaysShowSpoilerText,
+		.setter = &AyuSettings::setAlwaysShowSpoilerText,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/alwaysShowSpoilerMedia"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_AlwaysShowSpoilerMedia"),
+			qsl("Always show spoiler media"))),
+		.getter = &AyuSettings::alwaysShowSpoilerMedia,
+		.setter = &AyuSettings::setAlwaysShowSpoilerMedia,
 	});
 
 	BuildShowPeerId(builder);
 
 	ayu.addSectionDivider();
 
-	builder.addSubsectionTitle(rpl::single(QString("Webview")));
+	builder.addSubsectionTitle(
+		rpl::single(AyuHantHelper(qsl("ayu_WebviewHeader"), QString("Webview"))));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/spoofWebviewAsAndroid"_q,
-		.title = tr::ayu_SettingsSpoofWebviewAsAndroid(),
+		.title = AYU_T(ayu_SettingsSpoofWebviewAsAndroid),
 		.getter = &AyuSettings::spoofWebviewAsAndroid,
 		.setter = &AyuSettings::setSpoofWebviewAsAndroid,
 	});
 
 	ayu.addCollapsibleToggle({
 		.id = u"ayu/biggerWindow"_q,
-		.title = tr::ayu_SettingsBiggerWindow(),
+		.title = AYU_T(ayu_SettingsBiggerWindow),
 		.checkboxes = {
 			NestedEntry{
-				tr::ayu_SettingsIncreaseWebviewHeight(tr::now),
+				AYU_S(ayu_SettingsIncreaseWebviewHeight),
 				[] { return AyuSettings::getInstance().increaseWebviewHeight(); },
 				[](bool v) { AyuSettings::getInstance().setIncreaseWebviewHeight(v); }
 			},
 			NestedEntry{
-				tr::ayu_SettingsIncreaseWebviewWidth(tr::now),
+				AYU_S(ayu_SettingsIncreaseWebviewWidth),
 				[] { return AyuSettings::getInstance().increaseWebviewWidth(); },
 				[](bool v) { AyuSettings::getInstance().setIncreaseWebviewWidth(v); }
 			}
@@ -240,23 +274,23 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	ayu.addSectionDivider();
 
-	builder.addSubsectionTitle(tr::ayu_ConfirmationsTitle());
+	builder.addSubsectionTitle(AYU_T(ayu_ConfirmationsTitle));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/stickerConfirmation"_q,
-		.title = tr::ayu_StickerConfirmation(),
+		.title = AYU_T(ayu_StickerConfirmation),
 		.getter = &AyuSettings::stickerConfirmation,
 		.setter = &AyuSettings::setStickerConfirmation,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/gifConfirmation"_q,
-		.title = tr::ayu_GIFConfirmation(),
+		.title = AYU_T(ayu_GIFConfirmation),
 		.getter = &AyuSettings::gifConfirmation,
 		.setter = &AyuSettings::setGifConfirmation,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/voiceConfirmation"_q,
-		.title = tr::ayu_VoiceConfirmation(),
+		.title = AYU_T(ayu_VoiceConfirmation),
 		.getter = &AyuSettings::voiceConfirmation,
 		.setter = &AyuSettings::setVoiceConfirmation,
 	});

@@ -10,6 +10,7 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/ayu_userpic.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/ayu_hant_helper.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "boxes/peer_list_box.h"
@@ -224,7 +225,7 @@ QString GetAccountName(uint64 userId) {
 
 QString PickerLabel(uint64 userId) {
 	return (userId == 0)
-		? tr::ayu_GhostModeGlobalSettings(tr::now)
+		? AYU_S(ayu_GhostModeGlobalSettings)
 		: GetAccountName(userId);
 }
 
@@ -246,8 +247,8 @@ void selectGhostProfile(GhostPickerState *state, uint64 userId) {
 
 	if (wasGlobal != nowGlobal) {
 		Ui::Toast::Show(nowGlobal
-			? tr::ayu_GhostModeSwitchedToGlobalSettings(tr::now)
-			: tr::ayu_GhostModeSwitchedToIndividualSettings(tr::now));
+			? AYU_S(ayu_GhostModeSwitchedToGlobalSettings)
+			: AYU_S(ayu_GhostModeSwitchedToIndividualSettings));
 	}
 }
 
@@ -292,7 +293,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			const auto state = container->lifetime().make_state<GhostPickerState>();
 			state->selectedUserId = initialUserId;
 
-			const auto title = AddSubsectionTitle(container, tr::ayu_GhostEssentialsHeader());
+			const auto title = AddSubsectionTitle(container, AYU_T(ayu_GhostEssentialsHeader));
 
 			const auto pickerButton = Ui::CreateChild<Ui::LinkButton>(
 				container.get(),
@@ -333,35 +334,35 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 			std::vector checkboxes{
 				NestedEntry{
-					tr::ayu_DontReadMessages(tr::now),
+					AYU_S(ayu_DontReadMessages),
 					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendReadMessages(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadMessages(!v); },
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendReadMessagesLocked(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadMessagesLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontReadStories(tr::now),
+					AYU_S(ayu_DontReadStories),
 					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendReadStories(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadStories(!v); },
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendReadStoriesLocked(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadStoriesLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontSendOnlinePackets(tr::now),
+					AYU_S(ayu_DontSendOnlinePackets),
 					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendOnlinePackets(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOnlinePackets(!v); },
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOnlinePacketsLocked(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOnlinePacketsLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontSendUploadProgress(tr::now),
+					AYU_S(ayu_DontSendUploadProgress),
 					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendUploadProgress(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendUploadProgress(!v); },
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendUploadProgressLocked(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendUploadProgressLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_SendOfflinePacketAfterOnline(tr::now),
+					AYU_S(ayu_SendOfflinePacketAfterOnline),
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnline(); },
 					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnline(v); },
 					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnlineLocked(); },
@@ -370,7 +371,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			};
 
 			auto collapsible = AddCollapsibleToggle(
-				container, tr::ayu_GhostModeToggle(), std::move(checkboxes), true);
+				container, AYU_T(ayu_GhostModeToggle), std::move(checkboxes), true);
 			state->refreshCheckboxes = std::move(collapsible.refresh);
 			if (wctx.highlights && collapsible.widget) {
 				wctx.highlights->push_back(std::make_pair(
@@ -380,7 +381,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 			const auto markReadButton = AddButtonWithIcon(
 				container,
-				tr::ayu_MarkReadAfterAction(),
+				AYU_T(ayu_MarkReadAfterAction),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -408,12 +409,12 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_MarkReadAfterActionDescription());
+			AddDividerText(container, AYU_T(ayu_MarkReadAfterActionDescription));
 
 			AddSkip(container);
 			const auto scheduleButton = AddButtonWithIcon(
 				container,
-				tr::ayu_UseScheduledMessages(),
+				AYU_T(ayu_UseScheduledMessages),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -441,12 +442,12 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_UseScheduledMessagesDescription());
+			AddDividerText(container, AYU_T(ayu_UseScheduledMessagesDescription));
 
 			AddSkip(container);
 			const auto silentButton = AddButtonWithIcon(
 				container,
-				tr::ayu_SendWithoutSoundByDefault(),
+				AYU_T(ayu_SendWithoutSoundByDefault),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -470,7 +471,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_SendWithoutSoundByDefaultDescription());
+			AddDividerText(container, AYU_T(ayu_SendWithoutSoundByDefaultDescription));
 
 			auto showMenu = [=] {
 				state->menu = base::make_unique_q<Ui::PopupMenu>(
@@ -481,7 +482,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 					base::make_unique_q<GlobalAction>(
 						state->menu->menu(),
 						st::defaultPopupMenu.menu,
-						tr::ayu_GhostModeGlobalSettings(tr::now),
+						AYU_S(ayu_GhostModeGlobalSettings),
 						[=] { selectGhostProfile(state, 0); }));
 
 				for (const auto &account : Core::App().domain().orderedAccounts()) {
@@ -507,22 +508,22 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 		}, [&](const SearchContext &sctx) {
 			sctx.entries->push_back({
 				.id = u"ayu/ghostModeToggle"_q,
-				.title = tr::ayu_GhostModeToggle(tr::now),
+				.title = AYU_S(ayu_GhostModeToggle),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/markReadAfterAction"_q,
-				.title = tr::ayu_MarkReadAfterAction(tr::now),
+				.title = AYU_S(ayu_MarkReadAfterAction),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/useScheduledMessages"_q,
-				.title = tr::ayu_UseScheduledMessages(tr::now),
+				.title = AYU_S(ayu_UseScheduledMessages),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/sendWithoutSound"_q,
-				.title = tr::ayu_SendWithoutSoundByDefault(tr::now),
+				.title = AYU_S(ayu_SendWithoutSoundByDefault),
 				.section = sctx.sectionId,
 			});
 		});
@@ -530,55 +531,111 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 }
 
 void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_SpyEssentialsHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_SpyEssentialsHeader));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/saveDeletedMessages"_q,
-		.title = tr::ayu_SaveDeletedMessages(),
+		.title = AYU_T(ayu_SaveDeletedMessages),
 		.getter = &AyuSettings::saveDeletedMessages,
 		.setter = &AyuSettings::setSaveDeletedMessages,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/saveMessagesHistory"_q,
-		.title = tr::ayu_SaveMessagesHistory(),
+		.title = AYU_T(ayu_SaveMessagesHistory),
 		.getter = &AyuSettings::saveMessagesHistory,
 		.setter = &AyuSettings::setSaveMessagesHistory,
+	});
+
+	ayu.addSectionDivider();
+	builder.addSubsectionTitle(rpl::single(AyuHantHelper(
+		qsl("ayu_SaveDeletedMessagesByType"),
+		qsl("Save deleted messages (by type)"))));
+
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeText"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeText"),
+			qsl("Text"))),
+		.getter = &AyuSettings::saveDeletedTypeText,
+		.setter = &AyuSettings::setSaveDeletedTypeText,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeVisual"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeVisual"),
+			qsl("Photos / Videos"))),
+		.getter = &AyuSettings::saveDeletedTypeVisual,
+		.setter = &AyuSettings::setSaveDeletedTypeVisual,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeAudio"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeAudio"),
+			qsl("Audio (voice / music)"))),
+		.getter = &AyuSettings::saveDeletedTypeAudio,
+		.setter = &AyuSettings::setSaveDeletedTypeAudio,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeSticker"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeSticker"),
+			qsl("Stickers / animated stickers"))),
+		.getter = &AyuSettings::saveDeletedTypeSticker,
+		.setter = &AyuSettings::setSaveDeletedTypeSticker,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeGif"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeGif"),
+			qsl("GIFs / animations"))),
+		.getter = &AyuSettings::saveDeletedTypeGif,
+		.setter = &AyuSettings::setSaveDeletedTypeGif,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/saveDeletedTypeEmoji"_q,
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_SaveDeletedTypeEmoji"),
+			qsl("Emoji"))),
+		.getter = &AyuSettings::saveDeletedTypeEmoji,
+		.setter = &AyuSettings::setSaveDeletedTypeEmoji,
 	});
 
 	ayu.addSectionDivider();
 
 	ayu.addSettingToggle({
 		.id = u"ayu/saveForBots"_q,
-		.title = tr::ayu_MessageSavingSaveForBots(),
+		.title = AYU_T(ayu_MessageSavingSaveForBots),
 		.getter = &AyuSettings::saveForBots,
 		.setter = &AyuSettings::setSaveForBots,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/excludeBotsInGroups"_q,
-		.title = tr::ayu_MessageSavingExcludeBotsInGroups(),
+		.title = AYU_T(ayu_MessageSavingExcludeBotsInGroups),
 		.getter = &AyuSettings::excludeBotsInGroups,
 		.setter = &AyuSettings::setExcludeBotsInGroups,
 	});
 }
 
 void BuildOther(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_MessageSavingOtherHeader());
+	builder.addSubsectionTitle(AYU_T(ayu_MessageSavingOtherHeader));
 
 	ayu.addSettingToggle({
 		.id = u"ayu/localPremium"_q,
-		.title = tr::ayu_LocalPremium(),
+		.title = AYU_T(ayu_LocalPremium),
 		.getter = &AyuSettings::localPremium,
 		.setter = &AyuSettings::setLocalPremium,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/disableAds"_q,
-		.title = tr::ayu_DisableAds(),
+		.title = AYU_T(ayu_DisableAds),
 		.getter = &AyuSettings::disableAds,
 		.setter = &AyuSettings::setDisableAds,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/improveDC5Connection"_q,
-		.title = rpl::single(QString("Improve DC5 connection")),
+		.title = rpl::single(AyuHantHelper(
+			qsl("ayu_ImproveDC5Connection"),
+			qsl("Improve DC5 connection"))),
 		.getter = &AyuSettings::improveDC5Connection,
 		.setter = &AyuSettings::setImproveDC5Connection,
 	});
