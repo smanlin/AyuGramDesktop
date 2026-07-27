@@ -1391,16 +1391,35 @@ EditFlagsControl<ChatRestrictions> CreateEditRestrictions(
 		base::flat_map<ChatRestrictions, QString> disabledMessages,
 		Data::RestrictionsSetOptions options) {
 	auto widget = object_ptr<Ui::VerticalLayout>(parent);
+	auto labels = NestedRestrictionLabelsList(options);
+
+	// The control builds its value from the checkboxes it owns, starting from
+	// zero, so a flag with no checkbox comes back as "not allowed" and negates
+	// into "restricted". Outside forums the create-topics row is dropped, so
+	// every save silently banned it. Track which flags are actually on screen
+	// and leave the rest exactly as the peer already had them.
+	auto shown = ChatRestrictions(0);
+	for (const auto &nesting : labels) {
+		for (const auto &entry : nesting.nested) {
+			shown |= entry.flags;
+		}
+	}
+
 	auto result = CreateEditFlags(
 		widget.data(),
 		NegateRestrictions(restrictions),
 		{
-			.labels = NestedRestrictionLabelsList(options),
+			.labels = std::move(labels),
 			.disabledMessages = std::move(disabledMessages),
 		});
 	result.widget = std::move(widget);
-	result.value = [original = std::move(result.value)]{
-		return NegateRestrictions(original());
+	result.value = [
+		original = std::move(result.value),
+		restrictions,
+		shown
+	] {
+		return (NegateRestrictions(original()) & shown)
+			| (restrictions & ~shown);
 	};
 	result.changes = std::move(
 		result.changes
